@@ -8,36 +8,38 @@
         body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--tx); display: flex; justify-content: center; padding: 20px; }
         .card { background: var(--sf); border: 1px solid var(--bd); padding: 30px; border-radius: 12px; width: 100%; max-width: 650px; }
         .hidden { display: none; }
-        .opt { width: 100%; text-align: left; padding: 15px; background: #1e2530; border: 1px solid var(--bd); color: white; margin: 8px 0; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .opt { width: 100%; text-align: left; padding: 15px; background: #1e2530; border: 1px solid var(--bd); color: white; margin: 10px 0; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .opt:hover { border-color: var(--ac); background: #1c2e2a; }
-        .correct { color: var(--ac); font-weight: bold; padding: 10px; background: #00c89611; border-radius: 5px; margin-top: 10px; }
+        .selected { border-color: var(--ac); background: #00c89611; }
+        .review-item { border-bottom: 1px solid var(--bd); padding: 20px 0; }
+        .exp-box { font-size: 13px; background: #1e2530; padding: 12px; border-radius: 6px; margin-top: 10px; color: #7d8fa0; border-left: 3px solid var(--ac); }
     </style>
 </head>
 <body>
 
 <div id="entry-card" class="card">
-    <h2 id="sub-title">Loading Exam...</h2>
-    <div id="status-msg" style="margin-bottom:15px; font-size:14px; color:var(--warn)"></div>
-    <input type="text" id="s-name" placeholder="Full Name" style="width:100%; padding:12px; margin:10px 0; border-radius:8px; background:#1e2530; color:white; border:1px solid var(--bd)">
-    <input type="text" id="s-class" placeholder="Class (e.g. SSS3)" style="width:100%; padding:12px; margin:10px 0; border-radius:8px; background:#1e2530; color:white; border:1px solid var(--bd)">
-    <button id="start-btn" onclick="checkAndStart()" style="width:100%; padding:12px; background:var(--ac); border:none; border-radius:8px; font-weight:bold; cursor:pointer">Begin Examination</button>
+    <h2 id="sub-title">CBT Center</h2>
+    <p id="status-msg" style="margin-bottom:20px; font-size:14px; color:var(--ac)"></p>
+    <input type="text" id="s-name" placeholder="Enter Full Name">
+    <input type="text" id="s-class" placeholder="Enter Class (e.g. SSS1)">
+    <button id="start-btn" onclick="validateAttempt()" style="width:100%; padding:14px; background:var(--ac); border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px">Start Examination</button>
 </div>
 
 <div id="exam-card" class="card hidden">
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px">
-        <span id="timer" style="color:var(--ac); font-weight:bold; font-size:20px">00:00</span>
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-weight:bold">
+        <span id="timer" style="color:var(--ac)">00:00</span>
         <span id="progress"></span>
     </div>
-    <h3 id="q-text" style="margin-bottom:25px"></h3>
+    <h3 id="q-text" style="min-height: 80px;"></h3>
     <div id="options-box"></div>
     <div style="display:flex; gap:10px; margin-top:30px">
-        <button onclick="prev()" style="background:#2a3442; color:white; border:none; padding:12px 20px; border-radius:8px">Back</button>
-        <button onclick="next()" id="next-btn" style="flex-grow:1; background:var(--ac); color:var(--bg); font-weight:bold; border:none; border-radius:8px">Next Question</button>
+        <button onclick="prev()" style="background:#2a3442; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer">Back</button>
+        <button onclick="next()" id="next-btn" style="flex-grow:1; background:var(--ac); color:var(--bg); font-weight:bold; border:none; border-radius:8px; cursor:pointer">Next Question</button>
     </div>
 </div>
 
 <div id="result-view" class="card hidden">
-    <h2 style="text-align:center">Submission Successful</h2>
+    <h2 style="text-align:center">Examination Result</h2>
     <h1 id="score-text" style="text-align:center; color:var(--ac); font-size:60px; margin:20px 0">0/0</h1>
     <div id="review-list"></div>
 </div>
@@ -45,11 +47,13 @@
 <script>
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-    let exam = null, questions = [], current = 0, answers = {}, timeLeft = 0, attemptCount = 0;
+    let exam = null, questions = [], current = 0, answers = {}, timeLeft = 0, attemptNum = 1;
 
-    // Anti-Cheat: Tab Protection
+    // Security: Tab Protection
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden && exam) alert("Security Alert: Tab switching is prohibited. This has been logged.");
+        if (document.hidden && exam && !document.getElementById('exam-card').classList.contains('hidden')) {
+            alert("Warning: Leaving this tab has been flagged for the supervisor.");
+        }
     });
 
     async function init() {
@@ -58,7 +62,7 @@
         const data = await res.json();
         
         if (!data.length || !data[0].is_open) {
-            document.getElementById('status-msg').innerText = "This examination is currently CLOSED or does not exist.";
+            document.getElementById('status-msg').innerText = "Notice: This exam is currently closed or invalid.";
             document.getElementById('start-btn').disabled = true;
             return;
         }
@@ -66,37 +70,39 @@
         exam = data[0];
         document.getElementById('sub-title').innerText = exam.subject;
         
-        // 1. Question Shuffling & Selection (e.g. 50 from 100)
-        let pool = JSON.parse(exam.csv_data);
-        pool.sort(() => Math.random() - 0.5); // Shuffle
-        questions = exam.select_count > 0 ? pool.slice(0, exam.select_count) : pool;
+        // Handle Randomization (e.g. pick 50 from 100)
+        let fullPool = JSON.parse(exam.csv_data);
+        fullPool.sort(() => Math.random() - 0.5); // Shuffle everything
+        questions = exam.select_count > 0 ? fullPool.slice(0, exam.select_count) : fullPool;
     }
 
-    async function checkAndStart() {
+    async function validateAttempt() {
         const name = document.getElementById('s-name').value;
         const sClass = document.getElementById('s-class').value;
-        if (!name || !sClass) return alert("Enter your details.");
+        if (!name || !sClass) return alert("Identification required.");
 
-        // Check attempt history
         const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${name}&student_class=eq.${sClass}&exam_id=eq.${exam.id}`, {
             headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
         });
         const history = await res.json();
-        attemptCount = history.length + 1;
+        attemptNum = history.length + 1;
 
         if (history.length >= exam.attempt_limit) {
             return alert(`Limit Reached: You have already attempted this exam ${history.length} time(s).`);
         }
 
+        startExam();
+    }
+
+    function startExam() {
         document.getElementById('entry-card').classList.add('hidden');
         document.getElementById('exam-card').classList.remove('hidden');
-        
         timeLeft = exam.duration * 60;
-        const timerInt = setInterval(() => {
+        setInterval(() => {
             timeLeft--;
             let m = Math.floor(timeLeft/60), s = timeLeft%60;
             document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
-            if(timeLeft <= 0) { clearInterval(timerInt); submitExam(); }
+            if(timeLeft <= 0) submitExam();
         }, 1000);
         showQ();
     }
@@ -104,21 +110,20 @@
     function showQ() {
         const q = questions[current];
         document.getElementById('q-text').innerText = `${current + 1}. ${q.q}`;
-        document.getElementById('progress').innerText = `Question ${current+1} of ${questions.length}`;
+        document.getElementById('progress').innerText = `${current + 1} / ${questions.length}`;
         const box = document.getElementById('options-box'); box.innerHTML = '';
         
-        ['A','B','C','D'].forEach(l => {
-            const b = document.createElement('button');
-            b.className = 'opt';
-            if(answers[current] === l) b.style.borderColor = 'var(--ac)';
-            b.innerText = `${l}. ${q[l.toLowerCase()]}`;
-            b.onclick = () => { answers[current] = l; showQ(); };
-            box.appendChild(b);
+        ['a','b','c','d'].forEach(l => {
+            const btn = document.createElement('button');
+            btn.className = `opt ${answers[current] === l.toUpperCase() ? 'selected' : ''}`;
+            btn.innerText = `${l.toUpperCase()}. ${q[l]}`;
+            btn.onclick = () => { answers[current] = l.toUpperCase(); showQ(); };
+            box.appendChild(btn);
         });
-        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Final Answers" : "Next Question";
+        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Exam" : "Next Question";
     }
 
-    function next() { if (current < questions.length - 1) { current++; showQ(); } else if(confirm("Submit Exam?")) submitExam(); }
+    function next() { if (current < questions.length - 1) { current++; showQ(); } else if(confirm("Submit final answers?")) submitExam(); }
     function prev() { if (current > 0) { current--; showQ(); } }
 
     async function submitExam() {
@@ -127,14 +132,13 @@
         
         document.getElementById('exam-card').classList.add('hidden');
         document.getElementById('result-view').classList.remove('hidden');
-        document.getElementById('score-text').innerText = `${score}/${questions.length}`;
+        document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
 
-        // Show Review with Explanations
         document.getElementById('review-list').innerHTML = questions.map((q, i) => `
-            <div style="border-bottom:1px solid var(--bd); padding:15px 0">
-                <p><strong>Q${i+1}: ${q.q}</strong></p>
-                <p>Your: <span style="color:${answers[i]===q.ans?'var(--ac)':'#ff4d4d'}">${answers[i] || 'Skipped'}</span> | Correct: <span class="correct">${q.ans}</span></p>
-                <div class="correct" style="font-size:13px; background:#1e2530"><strong>Working:</strong> ${q.exp || 'No explanation provided.'}</div>
+            <div class="review-item">
+                <p><strong>Question ${i+1}:</strong> ${q.q}</p>
+                <p>Your Answer: <span style="color:${answers[i]===q.ans?'var(--ac)':'#ff4d4d'}">${answers[i] || 'None'}</span> | Correct: <span style="color:var(--ac)">${q.ans}</span></p>
+                <div class="exp-box"><strong>Working:</strong><br>${q.exp || 'Calculation not provided.'}</div>
             </div>
         `).join('');
 
@@ -142,12 +146,10 @@
             method: 'POST',
             headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                exam_id: exam.id,
-                student_name: document.getElementById('s-name').value,
+                exam_id: exam.id, student_name: document.getElementById('s-name').value,
                 student_class: document.getElementById('s-class').value,
-                score, total: questions.length,
-                time_taken: (exam.duration*60) - timeLeft,
-                attempt_number: attemptCount
+                score, total: questions.length, attempt_number: attemptNum,
+                time_taken: (exam.duration * 60) - timeLeft
             })
         });
     }
