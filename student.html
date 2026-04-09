@@ -127,7 +127,7 @@
             exam = data[0];
             document.getElementById('sub-title').innerText = exam.subject;
             let fullPool = JSON.parse(exam.csv_data);
-            fullPool.sort(() => Math.random() - 0.5); // Randomize
+            fullPool.sort(() => Math.random() - 0.5); 
             questions = exam.select_count > 0 ? fullPool.slice(0, exam.select_count) : fullPool;
         } catch(e) { document.getElementById('status-msg').innerText = "Network Error. Please refresh."; }
     }
@@ -142,22 +142,30 @@
 
         try {
             const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(name)}&student_class=eq.${encodeURIComponent(sClass)}&exam_id=eq.${exam.id}`, {
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                headers: { 
+                    'apikey': SB_KEY, 
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json'
+                }
             });
-            const history = await res.json();
-            
-            if (!Array.isArray(history)) throw new Error("Database permission issue. Inform your tutor to run the provided SQL command.");
 
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.message || "Database connection error");
+            }
+
+            const history = await res.json();
             attemptNum = history.length + 1;
 
             if (history.length >= exam.attempt_limit) {
-                alert(`Limit Reached: You have completed your ${exam.attempt_limit} allowed attempt(s).`);
+                alert(`Access Denied: You have already used all ${exam.attempt_limit} allowed attempt(s).`);
                 btn.innerText = "Begin Assessment"; btn.disabled = false;
                 return;
             }
             startExam();
         } catch(e) { 
-            alert(e.message || "Verification failed. Please try again."); 
+            console.error(e);
+            alert("Connection Error: Please ensure you have applied the SQL RLS policies in the Supabase Dashboard to allow 'Anonymous' access."); 
             btn.innerText = "Begin Assessment"; 
             btn.disabled = false; 
         }
