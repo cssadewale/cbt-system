@@ -3,92 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT.ng — Tutor Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&display=swap" rel="stylesheet">
+    <title>CBT Pro | Administrator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0d1117; --sf:#161b22; --sf2:#1e2530; --bd:#2a3442; --ac:#00c896; --tx:#e6edf3; --err:#e05252; }
-        body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--tx); padding: 20px; line-height: 1.6; }
-        .card { background: var(--sf); border: 1px solid var(--bd); padding: 25px; border-radius: 12px; margin-bottom: 20px; max-width: 900px; margin-inline: auto; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--bd); background: #1e2530; color: white; font-family: inherit; }
-        button { background: var(--ac); color: var(--bg); font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
-        button:hover { opacity: 0.8; }
-        .btn-outline { background: transparent; color: var(--ac); border: 1px solid var(--ac); width: auto; padding: 8px 15px; font-size: 13px; }
-        .btn-danger { background: var(--err); color: white; width: auto; padding: 8px 15px; font-size: 13px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .open { background: #00c89622; color: var(--ac); }
-        .closed { background: #e0525222; color: var(--err); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--bd); }
-        .hidden { display: none; }
+        :root { 
+            --bg: #09090b; --surface: #18181b; --surface-hover: #27272a; 
+            --primary: #10b981; --primary-hover: #059669; 
+            --border: #27272a; --text: #f4f4f5; --text-muted: #a1a1aa; 
+            --danger: #ef4444; --radius: 16px; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+        
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: var(--surface); border: 1px solid var(--border); padding: 32px; border-radius: var(--radius); margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        h2 { font-size: 24px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.5px; }
+        
+        label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select { width: 100%; padding: 16px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: inherit; font-size: 15px; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+        
+        button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        
+        .btn-sm { width: auto; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
+        .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+        .btn-outline:hover { background: rgba(16, 185, 129, 0.1); color: var(--primary); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .open { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
+        .closed { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th { text-align: left; padding: 16px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; }
+        td { text-align: left; padding: 16px; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: var(--surface-hover); }
+        
+        .hidden { display: none !important; }
+        
+        /* Premium Toast Notification */
+        #toast { position: fixed; bottom: -100px; right: 20px; background: white; color: black; padding: 16px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; }
+        #toast.show { bottom: 20px; }
     </style>
 </head>
 <body>
 
-<div id="auth-box" class="card" style="max-width:400px; margin-top: 50px;">
-    <h2 id="auth-title">Tutor Login</h2>
-    <input type="email" id="email" placeholder="Email Address">
-    <input type="password" id="pass" placeholder="Password">
-    
-    <div id="login-flow">
-        <button onclick="handleAuth('login')">Login to Dashboard</button>
-        <p style="text-align:center; font-size:13px; margin-top:15px">New Tutor? <a href="#" onclick="toggleAuth(true)" style="color:var(--ac)">Create account</a></p>
-    </div>
+<div id="toast">Notification</div>
 
-    <div id="signup-flow" class="hidden">
-        <button onclick="handleAuth('signup')">Sign Up</button>
-        <p style="text-align:center; font-size:13px; margin-top:15px">Already have an account? <a href="#" onclick="toggleAuth(false)" style="color:var(--ac)">Login</a></p>
-    </div>
-</div>
-
-<div id="main-dash" class="hidden">
-    <div class="card">
-        <h2>Set New Examination</h2>
-        <div class="grid">
-            <input type="text" id="ex-sub" placeholder="Subject Name">
-            <input type="number" id="ex-dur" placeholder="Duration (Minutes)">
+<div class="container">
+    <div id="auth-box" class="card" style="max-width:440px; margin: 80px auto;">
+        <h2 id="auth-title" style="text-align:center">Tutor Authentication</h2>
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="instructor@school.com">
+        <label>Secure Password</label>
+        <input type="password" id="pass" placeholder="••••••••">
+        
+        <div id="login-flow">
+            <button onclick="handleAuth('login')">Access Dashboard</button>
+            <p style="text-align:center; font-size:14px; margin-top:20px; color:var(--text-muted)">First time? <a href="#" onclick="toggleAuth(true)" style="color:var(--primary); text-decoration:none; font-weight:600">Create an account</a></p>
         </div>
-        <div class="grid">
-            <select id="ex-limit">
-                <option value="1">1 Attempt Allowed</option>
-                <option value="2">2 Attempts Allowed</option>
-                <option value="3">3 Attempts Allowed</option>
-                <option value="999">Unlimited Attempts</option>
-            </select>
-            <input type="number" id="ex-count" placeholder="No. of Qs to show (0 for all)">
+        <div id="signup-flow" class="hidden">
+            <button onclick="handleAuth('signup')">Register Account</button>
+            <p style="text-align:center; font-size:14px; margin-top:20px; color:var(--text-muted)">Already registered? <a href="#" onclick="toggleAuth(false)" style="color:var(--primary); text-decoration:none; font-weight:600">Login here</a></p>
         </div>
-        <label style="font-size:11px; color:var(--ac)">CSV Format: No, Question, A, B, C, D, Answer, Explanation</label>
-        <input type="file" id="csv-file" accept=".csv">
-        <button onclick="createExam()">Publish Examination</button>
     </div>
 
-    <div class="card">
-        <h2>Existing Examinations</h2>
-        <div id="exam-list"></div>
-    </div>
-
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center">
-            <h2>Consolidated Results</h2>
-            <button class="btn-outline" onclick="exportResults()">Download CSV</button>
+    <div id="main-dash" class="hidden">
+        <div class="flex-between" style="margin-bottom: 24px;">
+            <h2>Admin Dashboard</h2>
+            <div style="color:var(--text-muted); font-size:14px">Connected successfully</div>
         </div>
-        <input type="text" id="res-search" placeholder="Search by name or class..." onkeyup="filterResults()">
-        <table id="results-table">
-            <thead>
-                <tr><th>Student</th><th>Class</th><th>Score</th><th>Attempt</th><th>Date</th></tr>
-            </thead>
-            <tbody id="results-body"></tbody>
-        </table>
+
+        <div class="card">
+            <h2>Configure New Assessment</h2>
+            <div class="grid">
+                <div>
+                    <label>Subject / Module Name</label>
+                    <input type="text" id="ex-sub" placeholder="e.g. Advanced Physics 101">
+                </div>
+                <div>
+                    <label>Duration (Minutes)</label>
+                    <input type="number" id="ex-dur" placeholder="e.g. 45">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label>Allowed Attempts per Student</label>
+                    <select id="ex-limit">
+                        <option value="1">Strict: 1 Attempt</option>
+                        <option value="2">Standard: 2 Attempts</option>
+                        <option value="999">Practice: Unlimited</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Questions to Pull (Randomized)</label>
+                    <input type="number" id="ex-count" placeholder="Enter 0 to use all questions">
+                </div>
+            </div>
+            <label style="color:var(--primary)">Upload Question Bank (CSV format)</label>
+            <input type="file" id="csv-file" accept=".csv" style="padding:10px">
+            <button onclick="createExam()">Initialize & Publish Examination</button>
+        </div>
+
+        <div class="card">
+            <h2>Active Examinations</h2>
+            <div id="exam-list"></div>
+        </div>
+
+        <div class="card">
+            <div class="flex-between">
+                <h2>Performance Metrics</h2>
+                <button class="btn-sm btn-outline" onclick="exportResults()">Download CSV Report</button>
+            </div>
+            <input type="text" id="res-search" placeholder="Search by student name or class..." onkeyup="filterResults()" style="margin-top:20px">
+            <div style="overflow-x:auto">
+                <table id="results-table">
+                    <thead>
+                        <tr><th>Candidate Name</th><th>Class/Cohort</th><th>Score</th><th>Attempt</th><th>Timestamp</th></tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI';
     let session = null, questionsPool = [], allResults = [];
 
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg; toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
     function toggleAuth(isSignup) {
-        document.getElementById('auth-title').innerText = isSignup ? "Tutor Sign Up" : "Tutor Login";
+        document.getElementById('auth-title').innerText = isSignup ? "Create Tutor Account" : "Tutor Authentication";
         document.getElementById('login-flow').classList.toggle('hidden', isSignup);
         document.getElementById('signup-flow').classList.toggle('hidden', !isSignup);
     }
@@ -97,37 +154,29 @@
         const token = session ? session.access_token : SB_KEY;
         const res = await fetch(`${SB_URL}${path}`, {
             method,
-            headers: { 
-                'apikey': SB_KEY, 
-                'Authorization': `Bearer ${token}`, 
-                'Content-Type': 'application/json' 
-            },
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: body ? JSON.stringify(body) : null
         });
-        
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.message || "Request failed");
-        }
+        if (!res.ok) throw new Error((await res.json().catch(()=>({}))).message || "Database action failed");
         const text = await res.text();
         return text ? JSON.parse(text) : {};
     }
 
     async function handleAuth(type) {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('pass').value;
+        const email = document.getElementById('email').value, password = document.getElementById('pass').value;
         try {
             if(type === 'signup') {
                 await sbFetch('/auth/v1/signup', 'POST', { email, password });
-                alert("Account created! Please login.");
+                showToast("Account created successfully. You can now login.");
                 toggleAuth(false);
             } else {
                 session = await sbFetch('/auth/v1/token?grant_type=password', 'POST', { email, password });
                 document.getElementById('auth-box').classList.add('hidden');
                 document.getElementById('main-dash').classList.remove('hidden');
+                showToast("Welcome back!");
                 loadExams(); loadResults();
             }
-        } catch (e) { alert(e.message); }
+        } catch (e) { showToast("Error: " + e.message); }
     }
 
     document.getElementById('csv-file').addEventListener('change', function(e) {
@@ -138,59 +187,49 @@
                 const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 return { q: p[1], a: p[2], b: p[3], c: p[4], d: p[5], ans: p[6]?.trim().toUpperCase(), exp: p[7] };
             });
-            alert(`Parsed ${questionsPool.length} questions successfully.`);
+            showToast(`Successfully parsed ${questionsPool.length} questions.`);
         };
         reader.readAsText(e.target.files[0]);
     });
 
     async function createExam() {
-        if (questionsPool.length === 0) return alert("Please upload a CSV file first.");
+        if (!questionsPool.length) return showToast("⚠️ Upload a valid CSV file first.");
         const payload = {
-            subject: document.getElementById('ex-sub').value,
-            duration: document.getElementById('ex-dur').value,
-            attempt_limit: document.getElementById('ex-limit').value,
-            select_count: document.getElementById('ex-count').value || 0,
-            code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-            csv_data: JSON.stringify(questionsPool),
+            subject: document.getElementById('ex-sub').value, duration: document.getElementById('ex-dur').value,
+            attempt_limit: document.getElementById('ex-limit').value, select_count: document.getElementById('ex-count').value || 0,
+            code: Math.random().toString(36).substring(2, 8).toUpperCase(), csv_data: JSON.stringify(questionsPool),
             teacher_id: session.user.id
         };
-        try {
-            await sbFetch('/rest/v1/exams', 'POST', payload);
-            alert("Examination has been published!");
-            loadExams();
-        } catch(e) { alert(e.message); }
+        try { await sbFetch('/rest/v1/exams', 'POST', payload); showToast("✅ Examination Published!"); loadExams(); } 
+        catch(e) { showToast(e.message); }
     }
 
     async function loadExams() {
         const exams = await sbFetch('/rest/v1/exams?select=*&order=created_at.desc');
         const baseUrl = window.location.href.replace('teacher.html', 'student.html');
         document.getElementById('exam-list').innerHTML = exams.map(e => `
-            <div style="padding:15px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; align-items:center">
+            <div style="padding:20px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center">
                 <div>
-                    <strong>${e.subject}</strong> <span class="status-badge ${e.is_open?'open':'closed'}">${e.is_open?'Open':'Closed'}</span><br>
-                    <small style="color:var(--ac)">Code: ${e.code} | Link: ${baseUrl}?code=${e.code}</small>
+                    <div style="font-size:18px; font-weight:600; margin-bottom:6px">${e.subject} <span class="status-badge ${e.is_open?'open':'closed'}" style="margin-left:10px">${e.is_open?'Live':'Locked'}</span></div>
+                    <div style="color:var(--text-muted); font-size:13px; font-family:monospace">Share Link: ${baseUrl}?code=${e.code}</div>
                 </div>
-                <div style="display:flex; gap:8px">
-                    <button class="btn-outline" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Close':'Open'}</button>
-                    <button class="btn-danger" onclick="deleteExam('${e.id}')">Delete</button>
+                <div style="display:flex; gap:10px">
+                    <button class="btn-sm btn-outline" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Lock Exam':'Open Exam'}</button>
+                    <button class="btn-sm btn-danger" onclick="deleteExam('${e.id}')">Delete</button>
                 </div>
             </div>
         `).join('');
     }
 
-    async function toggleStatus(id, current) {
-        try {
-            await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'PATCH', { is_open: !current });
-            loadExams();
-        } catch (e) { alert(e.message); }
+    async function toggleStatus(id, currentStatus) {
+        try { await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'PATCH', { is_open: !currentStatus }); loadExams(); showToast("Status updated."); } 
+        catch (e) { showToast(e.message); }
     }
 
     async function deleteExam(id) {
-        if(confirm("Permanently delete this exam and all results?")) {
-            try {
-                await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'DELETE');
-                loadExams(); loadResults();
-            } catch (e) { alert(e.message); }
+        if(confirm("DANGER: This permanently deletes the exam and all student results. Proceed?")) {
+            try { await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'DELETE'); loadExams(); loadResults(); showToast("Exam deleted."); } 
+            catch (e) { showToast(e.message); }
         }
     }
 
@@ -202,11 +241,9 @@
     function renderResults(data) {
         document.getElementById('results-body').innerHTML = data.map(r => `
             <tr>
-                <td>${r.student_name}</td>
-                <td>${r.student_class}</td>
-                <td style="color:var(--ac)">${r.score}/${r.total}</td>
-                <td>Attempt #${r.attempt_number || 1}</td>
-                <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                <td style="font-weight:600">${r.student_name}</td><td>${r.student_class}</td>
+                <td style="color:var(--primary); font-weight:700">${r.score}/${r.total}</td>
+                <td>Attempt #${r.attempt_number || 1}</td><td style="color:var(--text-muted)">${new Date(r.created_at).toLocaleDateString()}</td>
             </tr>
         `).join('');
     }
@@ -217,11 +254,8 @@
     }
 
     function exportResults() {
-        let csv = "Name,Class,Score,Total,Attempt,Date\n" + 
-            allResults.map(r => `${r.student_name},${r.student_class},${r.score},${r.total},${r.attempt_number},${r.created_at}`).join("\n");
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'cbt_results.csv'; a.click();
+        let csv = "Name,Class,Score,Total,Attempt,Date\n" + allResults.map(r => `${r.student_name},${r.student_class},${r.score},${r.total},${r.attempt_number},${r.created_at}`).join("\n");
+        const a = document.createElement('a'); a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'cbt_report.csv'; a.click();
     }
 </script>
 </body>
