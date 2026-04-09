@@ -66,6 +66,7 @@ document.getElementById('csv').addEventListener('change',e=>{
 
 // CREATE EXAM (FIXED)
 async function createExam(){
+ teacher_id: session.user.id
  const btn=document.getElementById('publish-btn');
  try {
   if(!pool.length) return alert("Upload CSV first");
@@ -136,6 +137,32 @@ async function toggle(id,state){
   body:JSON.stringify({is_open:!state})
  });
  loadExams();
+}
+
+async function deleteExam(id){
+ if(!confirm("Delete this exam permanently?")) return;
+
+ try{
+  const res = await fetch(`${SB_URL}/rest/v1/exams?id=eq.${id}`,{
+    method:'DELETE',
+    headers:{
+      apikey:SB_KEY,
+      Authorization:`Bearer ${SB_KEY}`
+    }
+  });
+
+  if(!res.ok){
+    throw new Error(await res.text());
+  }
+
+  alert("Exam deleted successfully");
+  loadExams();
+  loadResults();
+
+ }catch(e){
+  console.error(e);
+  alert("Delete failed: " + e.message);
+ }
 }
 
 // LOAD RESULTS
