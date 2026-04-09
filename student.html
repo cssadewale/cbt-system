@@ -1,157 +1,106 @@
-<!DOCTYPE html>
-<html lang="en">
+<!-- ========================= STUDENT.HTML ========================= --><!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Student Portal</title>
-
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root { --bg:#09090b; --surface:#18181b; --primary:#10b981; --border:#27272a; --text:#f4f4f5; }
-body { font-family:sans-serif; background:var(--bg); color:var(--text); display:flex; justify-content:center; align-items:center; min-height:100vh; }
-.card { background:var(--surface); padding:30px; border-radius:15px; width:100%; max-width:700px; }
-.hidden { display:none; }
-.opt { padding:10px; border:1px solid var(--border); margin-bottom:10px; cursor:pointer; }
-.opt.selected { border-color:var(--primary); }
+:root { --bg:#09090b; --surface:#18181b; --primary:#10b981; --border:#27272a; --text:#f4f4f5; --muted:#a1a1aa; }
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+.card{background:var(--surface);padding:30px;border-radius:16px;width:100%;max-width:650px;border:1px solid var(--border)}
+input{width:100%;padding:14px;margin:10px 0;border-radius:10px;border:1px solid var(--border);background:#000;color:#fff}
+button{width:100%;padding:14px;background:var(--primary);border:none;border-radius:10px;font-weight:700;cursor:pointer}
+.opt{padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer}
+.opt.selected{border-color:var(--primary);background:rgba(16,185,129,0.1)}
+.hidden{display:none}
 </style>
 </head>
-
-<body>
-
-<div id="entry" class="card">
-<h2>Student Portal</h2>
-<input id="name" placeholder="Name"><br><br>
-<input id="class" placeholder="Class"><br><br>
-<button onclick="startCheck()">Start</button>
+<body><div id="entry" class="card">
+<h2 style="text-align:center">Student Portal</h2>
+<input id="name" placeholder="Full Name">
+<input id="class" placeholder="Class">
+<button onclick="validate()">Start Assessment</button>
+</div><div id="exam" class="card hidden">
+<div style="display:flex;justify-content:space-between">
+<span id="progress"></span>
+<span id="timer"></span>
 </div>
-
-<div id="exam" class="card hidden">
-<div id="timer"></div>
-<div id="q"></div>
+<div id="q" style="margin:20px 0"></div>
 <div id="opts"></div>
+<div style="display:flex;gap:10px">
 <button onclick="prev()">Back</button>
 <button onclick="next()">Next</button>
 </div>
-
-<div id="result" class="card hidden"></div>
-
-<script>
+</div><div id="result" class="card hidden"></div><script>
 const SB_URL='https://pstnsaqjshmtintjrnas.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+const SB_KEY='YOUR_ANON_KEY_HERE';
 
-let exam=null, questions=[], current=0, answers={}, timeLeft=0, timer;
+let exam=null,questions=[],current=0,answers={},timeLeft,timerObj;
 
 async function init(){
  const code=new URLSearchParams(location.search).get('code');
- if(!code) return alert("Invalid link");
-
- const r=await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`,{
-  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
- });
+ if(!code) return alert('Invalid link');
+ const r=await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
  const d=await r.json();
  exam=d[0];
-
- if(!exam || !exam.is_open) return alert("Exam unavailable");
-
+ if(!exam||!exam.is_open) return alert('Exam unavailable');
  questions=JSON.parse(exam.csv_data).sort(()=>Math.random()-0.5);
 }
 
-async function startCheck(){
- const n=name.value.trim(), c=class.value.trim();
- if(!n||!c) return alert("Fill all");
-
- const r=await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${n}&exam_id=eq.${exam.id}&select=*`,{
-  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
- });
+async function validate(){
+ if(!name.value||!class.value) return alert('Fill details');
+ const r=await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${name.value}&exam_id=eq.${exam.id}&select=*`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
  const h=await r.json();
-
- if(h.length>=exam.attempt_limit) return alert("Attempt exceeded");
-
- startExam();
+ if(h.length>=exam.attempt_limit) return alert('Attempt limit reached');
+ start();
 }
 
-function startExam(){
+function start(){
  entry.classList.add('hidden');
- examDiv=examCard=document.getElementById('exam');
- examDiv.classList.remove('hidden');
-
+ exam.classList.remove('hidden');
  timeLeft=exam.duration*60;
- timer=setInterval(()=>{
+ timerObj=setInterval(()=>{
   timeLeft--;
-  timer.innerText=timeLeft;
+  timer.innerText=Math.floor(timeLeft/60)+":"+(timeLeft%60).toString().padStart(2,'0');
   if(timeLeft<=0) submit();
  },1000);
-
  showQ();
 }
 
 function showQ(){
  const q=questions[current];
+ progress.innerText=`Q ${current+1}/${questions.length}`;
  document.getElementById('q').innerText=q.q;
-
- const box=document.getElementById('opts');
- box.innerHTML='';
-
+ opts.innerHTML='';
  ['A','B','C','D'].forEach(l=>{
-  const v=q[l.toLowerCase()];
-  if(!v) return;
-
+  if(!q[l.toLowerCase()]) return;
   const d=document.createElement('div');
-  d.className='opt';
-  if(answers[current]==l) d.classList.add('selected');
-
-  d.innerHTML=`${l}. ${v}`;
-  d.onclick=()=>{answers[current]=l; showQ();};
-
-  box.appendChild(d);
+  d.className='opt '+(answers[current]==l?'selected':'');
+  d.innerHTML=`${l}. ${q[l.toLowerCase()]}`;
+  d.onclick=()=>{answers[current]=l;showQ();};
+  opts.appendChild(d);
  });
 }
 
-function next(){
- if(current<questions.length-1){current++; showQ();}
- else if(confirm("Submit?")) submit();
-}
-
-function prev(){ if(current>0){current--; showQ();} }
+function next(){current<questions.length-1?(current++,showQ()):submit();}
+function prev(){if(current>0){current--;showQ();}}
 
 async function submit(){
- clearInterval(timer);
-
+ clearInterval(timerObj);
  let score=0;
- questions.forEach((q,i)=>{ if(answers[i]==q.ans) score++; });
-
+ questions.forEach((q,i)=>{if(answers[i]==q.ans)score++;});
  exam.classList.add('hidden');
  result.classList.remove('hidden');
-
  let html=`<h2>${score}/${questions.length}</h2>`;
-
  questions.forEach((q,i)=>{
-  html+=`
-  <div>
-  <b>${q.q}</b><br>
-  Your: ${answers[i]||'None'}<br>
-  Correct: ${q.ans}<br>
-  ${q.exp||''}
-  </div><hr>`;
+  html+=`<div><b>${q.q}</b><br>Your: ${answers[i]||'-'}<br>Correct: ${q.ans}<br>${q.exp||''}</div><hr>`;
  });
-
  result.innerHTML=html;
-
- await fetch(`${SB_URL}/rest/v1/results`,{
-  method:'POST',
-  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
-  body:JSON.stringify({
-   exam_id:exam.id,
-   student_name:name.value,
-   student_class:class.value,
-   score,
-   total:questions.length,
-   answers:JSON.stringify(answers)
-  })
- });
+ await fetch(`${SB_URL}/rest/v1/results`,{method:'POST',headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({exam_id:exam.id,student_name:name.value,student_class:class.value,score,total:questions.length,answers:JSON.stringify(answers)})});
 }
 
 init();
 </script>
-
+ 
 </body>
 </html>
