@@ -8,12 +8,11 @@
     <style>
         :root { --bg: #09090b; --surface: #18181b; --primary: #10b981; --border: #27272a; --text: #f4f4f5; --text-muted: #a1a1aa; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: var(--surface); border: 1px solid var(--border); padding: 40px; border-radius: 20px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card { background: var(--surface); border: 1px solid var(--border); padding: 40px; border-radius: 20px; width: 100%; max-width: 600px; }
         .hidden { display: none !important; }
         input { width: 100%; padding: 15px; margin: 10px 0 20px; border-radius: 10px; border: 1px solid var(--border); background: #000; color: #fff; font-size: 16px; }
-        button { width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; }
+        button { width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; }
+        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
         .opt.selected { border-color: var(--primary); background: rgba(16,185,129,0.1); }
     </style>
 </head>
@@ -21,14 +20,14 @@
 
 <div id="entry-card" class="card">
     <h2 style="text-align:center">Student Portal</h2>
-    <p id="status-msg" style="text-align:center; color:var(--text-muted)">Verify your details to begin the exam.</p>
+    <p id="status-msg" style="text-align:center; color:var(--text-muted)">Enter details to begin your assessment.</p>
     <input type="text" id="s-name" placeholder="Full Name">
     <input type="text" id="s-class" placeholder="Class (e.g. SSS 1)">
     <button id="start-btn" onclick="validateAttempt()">Begin Assessment</button>
 </div>
 
 <div id="exam-card" class="card hidden" style="max-width: 800px;">
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:15px;">
         <span id="progress-text"></span>
         <span id="timer" style="color:var(--primary); font-weight:800; font-size:20px;"></span>
     </div>
@@ -41,9 +40,9 @@
 </div>
 
 <div id="result-view" class="card hidden" style="max-width: 800px; text-align:center;">
-    <h2>Submission Successful</h2>
+    <h2>Assessment Submitted</h2>
     <h1 id="score-text" style="color:var(--primary); font-size:72px; margin:20px 0;"></h1>
-    <p style="color:var(--text-muted)">Your records have been updated.</p>
+    <p style="color:var(--text-muted)">Your records have been saved successfully.</p>
 </div>
 
 <script>
@@ -56,7 +55,9 @@
         const code = new URLSearchParams(window.location.search).get('code');
         if(!code) return;
         try {
-            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { 
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
+            });
             const data = await res.json();
             if(data.length) {
                 exam = data[0];
@@ -64,29 +65,28 @@
                 pool.sort(() => Math.random() - 0.5);
                 questions = exam.select_count > 0 ? pool.slice(0, exam.select_count) : pool;
             }
-        } catch(e) { console.error("Exam load failed", e); }
+        } catch(e) { console.error(e); }
     }
 
     async function validateAttempt() {
         const n = document.getElementById('s-name').value.trim();
         const c = document.getElementById('s-class').value.trim();
-        if(!n || !c) return alert("Fill in both fields.");
+        if(!n || !c) return alert("Fill in details.");
 
         const btn = document.getElementById('start-btn');
-        btn.innerText = "Verifying Table..."; btn.disabled = true;
+        btn.innerText = "Syncing..."; btn.disabled = true;
 
         try {
-            // Cache-busting query to bypass the 404 browser error
-            const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}&cb=${Date.now()}`, {
+            const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}`, {
                 headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
             });
             
-            if(!res.ok) throw new Error("Table 'results' not found. Please run the SQL fix.");
+            if(!res.ok) throw new Error("Database sync error. Ensure SQL script was run.");
 
             const history = await res.json();
             attemptNum = (history ? history.length : 0) + 1;
             if(history && history.length >= exam.attempt_limit) {
-                alert("You have reached the maximum allowed attempts.");
+                alert("Attempt limit reached.");
                 btn.innerText = "Begin Assessment"; btn.disabled = false;
                 return;
             }
@@ -113,7 +113,7 @@
     function showQ() {
         const q = questions[current];
         document.getElementById('q-text').innerText = `${current+1}. ${q.q}`;
-        document.getElementById('progress-text').innerText = `Question ${current+1}/${questions.length}`;
+        document.getElementById('progress-text').innerText = `QUESTION ${current+1}/${questions.length}`;
         const box = document.getElementById('options-box'); box.innerHTML = '';
         ['A','B','C','D'].forEach(l => {
             if(!q[l.toLowerCase()]) return;
@@ -123,12 +123,12 @@
             dv.onclick = () => { answers[current] = l; showQ(); };
             box.appendChild(dv);
         });
-        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Exam" : "Next Question";
+        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit" : "Next";
     }
 
     function next() { 
         if(current < questions.length - 1) { current++; showQ(); } 
-        else if(confirm("Submit Assessment?")) submitExam(); 
+        else if(confirm("Submit Exam?")) submitExam(); 
     }
     
     function prev() { if(current > 0) { current--; showQ(); } }
@@ -145,7 +145,11 @@
         try {
             await fetch(`${SB_URL}/rest/v1/results`, {
                 method: 'POST',
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+                headers: { 
+                    'apikey': SB_KEY, 
+                    'Authorization': `Bearer ${SB_KEY}`, 
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     exam_id: exam.id, 
                     student_name: document.getElementById('s-name').value,
@@ -154,7 +158,7 @@
                     time_taken: (exam.duration * 60) - timeLeft
                 })
             });
-        } catch(e) { console.error("Failed to sync score."); }
+        } catch(e) { console.error("Final sync failed"); }
     }
     init();
 </script>
