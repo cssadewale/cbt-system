@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CBT.ng — Student Exam</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+/* Reusing the styling from the template */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--sf:#161b22;--sf2:#1e2530;--bd:#2a3442;
+  --ac:#00c896;--ad:#00c89622;--warn:#f0a500;--err:#e05252;
+  --ok:#00c896;--tx:#e6edf3;--mu:#7d8fa0;--r:12px;
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--tx);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 16px 60px}
+header{width:100%;max-width:720px;display:flex;align-items:center;
+  justify-content:space-between;padding:14px 0 22px;
+  border-bottom:1px solid var(--bd);margin-bottom:28px}
+.logo{font-size:1.1rem;font-weight:700}.logo em{color:var(--ac);font-style:normal}
+#clock{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;
+  color:var(--ac);background:var(--ad);border:1px solid var(--ac);
+  padding:5px 16px;border-radius:40px;letter-spacing:2px;display:none}
+#clock.w{color:var(--warn);border-color:var(--warn);background:#f0a50018}
+#clock.d{color:var(--err);border-color:var(--err);background:#e0525218;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.scr{width:100%;max-width:720px;display:none}
+.scr.on{display:block;animation:up .3s ease}
+@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.box{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:26px;margin-bottom:16px}
+.box h2{font-size:1.1rem;font-weight:700;margin-bottom:5px}
+.box .sub{color:var(--mu);font-size:.84rem;margin-bottom:20px;line-height:1.5}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.74rem;font-weight:700;letter-spacing:.5px;color:var(--mu);text-transform:uppercase;margin-bottom:6px}
+input[type=text]{width:100%;background:var(--sf2);border:1px solid var(--bd);
+  border-radius:var(--r);color:var(--tx);font-family:'Sora',sans-serif;
+  font-size:.95rem;padding:11px 13px;outline:none;transition:border-color .2s}
+input:focus{border-color:var(--ac)}
+.code-box{font-family:'JetBrains Mono',monospace;font-size:1.6rem;text-align:center;letter-spacing:10px;text-transform:uppercase;padding:15px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--ac);color:#000;font-family:'Sora',sans-serif;font-size:.92rem;
+  font-weight:700;border:none;border-radius:var(--r);padding:12px 22px;
+  cursor:pointer;width:100%;margin-top:8px;transition:opacity .2s}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.ghost{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.ghost:hover{border-color:var(--ac);color:var(--ac)}
+.red-btn{background:var(--err);color:#fff}
+.flag-btn{background:transparent;color:var(--warn);border:1px solid var(--warn);font-size:.83rem;padding:9px 14px}
+.flag-btn.on{background:#f0a50022}
+.err-bar{display:none;font-size:.82rem;color:var(--err);margin-top:8px;
+  background:#e0525212;border:1px solid #e0525230;border-radius:8px;padding:9px 12px}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;
+  border-top-color:transparent;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.center-wrap{display:flex;flex-direction:column;align-items:center;width:100%;max-width:440px;margin:0 auto}
+.big-logo{font-size:1.5rem;font-weight:700;text-align:center;margin-bottom:3px}
+.big-logo em{color:var(--ac);font-style:normal}
+.big-logo small{display:block;font-size:.76rem;color:var(--mu);font-weight:400;margin-top:2px}
+.preview-band{background:var(--ad);border:1px solid var(--ac);border-radius:10px;padding:14px;margin-bottom:14px;display:none}
+.preview-band strong{color:var(--ac);font-size:.95rem}
+.preview-band p{font-size:.8rem;color:var(--mu);margin-top:3px}
+.notice{border-radius:10px;padding:18px;text-align:center;margin-bottom:14px;display:none}
+.notice .ni{font-size:2rem;margin-bottom:6px}
+.notice p{font-size:.86rem}
+.closed-n{background:#e0525210;border:1px solid #e0525240}
+.closed-n p{color:var(--err)}
+
+/* exam layout */
+.meta-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.meta-row .sub-lbl{font-size:.83rem;color:var(--mu)}
+.prog-wrap{margin-bottom:22px}
+.prog-bg{height:5px;background:var(--sf2);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:var(--ac);border-radius:99px;transition:width .4s}
+.prog-lbl{font-size:.76rem;color:var(--mu);margin-top:5px;text-align:right}
+.grid-wrap{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:18px}
+.grid-lbl{font-size:.74rem;color:var(--mu);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px}
+.q-grid{display:flex;flex-wrap:wrap;gap:5px}
+.qd{width:30px;height:30px;border-radius:7px;font-size:.7rem;font-weight:700;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;background:var(--sf2);color:var(--mu);font-family:'JetBrains Mono',monospace}
+.qd.ans{background:var(--ac);color:#000}.qd.flg{background:var(--warn);color:#000}.qd.cur{outline:2px solid var(--ac);outline-offset:2px}
+.q-card{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:22px;margin-bottom:18px}
+.q-num{font-family:'JetBrains Mono',monospace;font-size:.73rem;color:var(--ac);font-weight:700;letter-spacing:1px;margin-bottom:9px}
+.q-txt{font-size:1rem;line-height:1.65}
+.opts{display:flex;flex-direction:column;gap:9px;margin-top:18px}
+.opt{display:flex;align-items:center;gap:12px;background:var(--sf2);border:1.5px solid var(--bd);
+  border-radius:var(--r);padding:11px 14px;cursor:pointer;text-align:left;transition:border-color .15s,background .15s;width:100%}
+.opt:hover{border-color:var(--ac);background:var(--ad)}.opt.sel{border-color:var(--ac);background:var(--ad)}
+.opt-lbl{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;background:var(--bd);color:var(--tx);
+  width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.opt.sel .opt-lbl{background:var(--ac);color:#000}
+.opt-txt{font-size:.93rem;line-height:1.4}
+.nav{display:flex;gap:9px;margin-top:6px;flex-wrap:wrap}
+.nav .btn{width:auto;flex:1;min-width:90px;font-size:.85rem;padding:10px}
+
+/* results */
+.cert{background:var(--sf);border:2px solid var(--ac);border-radius:16px;padding:28px 20px;text-align:center;margin-bottom:22px}
+.cert .ct{font-size:.68rem;letter-spacing:2px;color:var(--ac);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:12px}
+.ring{width:110px;height:110px;border-radius:50%;border:5px solid var(--ac);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 14px}
+.ring .sn{font-size:2rem;font-weight:700;line-height:1}.ring .sd{font-size:.78rem;color:var(--mu)}
+.cert h2{font-size:1.3rem;font-weight:700;margin-bottom:5px}
+.cert .pct{font-size:.9rem;color:var(--mu);margin-bottom:12px}
+.cert .who{font-size:.8rem;color:var(--mu);margin-bottom:14px}
+.s-row{display:flex;justify-content:center;gap:26px;flex-wrap:wrap}
+.si{text-align:center}.sn2{font-size:1.3rem;font-weight:700}
+.sl2{font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:.5px}
+.cert .when{font-size:.68rem;color:var(--mu);margin-top:12px}
+.rev-sec h3{font-size:.95rem;font-weight:700;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--bd)}
+.ri{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:9px}
+.ri.ok{border-left:3px solid var(--ok)}.ri.bad{border-left:3px solid var(--err)}
+.rn{font-size:.7rem;color:var(--mu);font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.rq{font-size:.88rem;line-height:1.5;margin-bottom:9px}
+.ra-wrap{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.ra{font-size:.83rem;padding:6px 11px;border-radius:7px;display:flex;align-items:center;gap:7px}
+.ra.wa{background:#e0525214;color:var(--err)}.ra.ca{background:#00c89614;color:var(--ok)}
+.ra .tag{font-size:.68rem;font-weight:700;font-family:'JetBrains Mono',monospace}
+.skip{color:var(--mu);font-style:italic;font-size:.83rem}
+.expl{margin-top:7px;background:#00c89610;border:1px solid #00c89630;border-radius:9px;padding:11px 13px}
+.expl .el{font-size:.68rem;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.expl .et{font-size:.85rem;line-height:1.6;color:#b0e8d8}
+.res-btns{display:flex;gap:10px;margin-top:18px}
+.res-btns .btn{flex:1}
+@media(max-width:460px){.nav .btn{min-width:72px;font-size:.78rem;padding:9px 6px}.res-btns{flex-direction:column}header{flex-direction:column;align-items:flex-start;gap:8px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">CBT<em>.</em>ng</div>
+  <div id="clock">00:00</div>
+</header>
+
+<!-- ENTRY SCREEN -->
+<div id="s-entry" class="scr on">
+  <div class="center-wrap">
+    <div class="big-logo">CBT<em>.</em>ng <small>Student Exam Entry</small></div>
+    <div class="box" style="width:100%;margin-top:16px">
+      <h2 id="e-title">Enter Exam Code</h2>
+      <p class="sub" id="e-sub">Type the 6-character code your teacher gave you.</p>
+
+      <div class="notice closed-n" id="n-closed">
+        <div class="ni">🔒</div>
+        <p><strong>This exam is closed.</strong><br>Your teacher has ended this session.</p>
+      </div>
+
+      <div class="preview-band" id="e-preview">
+        <strong id="e-prev-title"></strong>
+        <p id="e-prev-meta"></p>
+      </div>
+
+      <div id="sec-code">
+        <div class="fg">
+          <label>Exam Code</label>
+          <input type="text" id="inp-code" class="code-box" placeholder="······"
+            maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false"
+            oninput="onCode(this)" onkeydown="if(event.key==='Enter')findExam()"/>
+        </div>
+        <div class="err-bar" id="err-code"></div>
+        <button class="btn" id="btn-find" onclick="findExam()">Find Exam →</button>
+      </div>
+
+      <div id="sec-details" style="display:none">
+        <div class="fg">
+          <label>Full Name</label>
+          <input type="text" id="inp-name" placeholder="Enter your full name"/>
+        </div>
+        <div class="fg">
+          <label>Class / Group</label>
+          <input type="text" id="inp-class" placeholder="e.g. Grade 10A"/>
+        </div>
+        <div class="err-bar" id="err-details"></div>
+        <button class="btn" id="btn-start" onclick="startExam()">Start Exam Now</button>
+        <button class="btn ghost" onclick="backToCode()" style="margin-top:10px">Change Code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXAM SCREEN -->
+<div id="s-exam" class="scr">
+  <div class="meta-row">
+    <div>
+      <div class="sub-lbl" id="ex-subject">Subject</div>
+      <div id="ex-student" style="font-weight:700">Student Name</div>
+    </div>
+    <div style="text-align:right">
+      <div class="sub-lbl">Time Remaining</div>
+      <div id="ex-time" style="font-weight:700;color:var(--ac)">--:--</div>
+    </div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-bg"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+    <div class="prog-lbl" id="prog-lbl">0 of 0 answered</div>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="grid-lbl">Question Navigator</div>
+    <div class="q-grid" id="q-grid"></div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-num" id="q-num">QUESTION 1</div>
+    <div class="q-txt" id="q-txt">...</div>
+    <div class="opts" id="opts"></div>
+  </div>
+
+  <div class="nav">
+    <button class="btn ghost" id="btn-prev" onclick="go(-1)">← Previous</button>
+    <button class="btn ghost flag-btn" id="btn-flag" onclick="toggleFlag()">⚐ Flag</button>
+    <button class="btn ghost" id="btn-next" onclick="go(1)">Next →</button>
+    <button class="btn" onclick="trySubmit()">Finish Exam</button>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="s-results" class="scr">
+  <div class="cert" id="cert">
+    <div class="ct">Examination Certificate</div>
+    <div class="ring" id="ring">
+      <div class="sn" id="r-score">0</div>
+      <div class="sd" id="r-total">of 0</div>
+    </div>
+    <h2 id="r-head">Result</h2>
+    <div class="pct" id="r-pct">0%</div>
+    <div class="who" id="r-who">Student Name</div>
+    <div class="s-row">
+      <div class="si"><div class="sn2" id="r-c">0</div><div class="sl2">Correct</div></div>
+      <div class="si"><div class="sn2" id="r-w">0</div><div class="sl2">Wrong</div></div>
+      <div class="si"><div class="sn2" id="r-s">0</div><div class="sl2">Skipped</div></div>
+    </div>
+    <div class="when" id="r-when">Submitted on...</div>
+  </div>
+
+  <div class="rev-sec">
+    <h3>Question Review</h3>
+    <div id="rev-list"></div>
+  </div>
+
+  <div class="res-btns">
+    <button class="btn" onclick="location.reload()">Take Another Exam</button>
+  </div>
+</div>
+
+<script>
+// --- CONFIGURATION ---
+const SB_URL = 'YOUR_SUPABASE_URL';
+const SB_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+// --- STATE ---
+let exam = null, qs = [], qi = 0, total = 0;
+let sName = '', sClass = '';
+let ans = {}, flags = new Set();
+let ticker, tLeft = 0, tStart, tUsed = 0;
+
+// --- HELPERS ---
+function g(id) { return document.getElementById(id); }
+function showErr(id, msg) { const e=g(id); e.textContent=msg; e.style.display='block'; }
+function hideErr(id) { g(id).style.display='none'; }
+function go2(name) {
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  g('s-'+name).classList.add('on'); window.scrollTo(0,0);
+}
+
+async function sbFetch(path, method='GET', body=null) {
+  const options = {
+    method,
+    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' }
+  };
+  if (body) options.body = JSON.stringify(body);
+  const res = await fetch(SB_URL + path, options);
+  const contentType = res.headers.get("content-type");
+
+  if (!res.ok) {
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      const err = await res.json();
+      throw new Error(err.message || 'API Request failed');
+    } else {
+      throw new Error('Server error: Please check if your Supabase URL is correct and includes https://');
+    }
+  }
+
+  if (contentType && contentType.indexOf("application/json") !== -1) {
+    return res.json();
+  } else {
+    return res.text();
+  }
+}
+
+// --- LOGIC ---
+function onCode(el) {
+  el.value = el.value.toUpperCase();
+  if(el.value.length === 6) findExam();
+}
+
+async function findExam() {
+  const code = g('inp-code').value;
+  if(code.length !== 6) return showErr('err-code', 'Enter 6-digit code');
+  
+  const btn = g('btn-find');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Searching...';
+  hideErr('err-code');
+
+  try {
+    const data = await sbFetch(`/rest/v1/exams?code=eq.${code}&select=*`);
+    if(!data.length) throw new Error('Exam code not found');
+    
+    exam = data[0];
+    if(!exam.is_open) {
+      g('n-closed').style.display = 'block';
+      g('sec-code').style.display = 'none';
+      return;
+    }
+
+    g('e-prev-title').textContent = exam.subject;
+    g('e-prev-meta').textContent = `${exam.duration} Minutes • ${exam.max_attempts === 0 ? 'Unlimited' : exam.max_attempts + ' Attempt(s)'}`;
+    g('e-preview').style.display = 'block';
+    g('sec-code').style.display = 'none';
+    g('sec-details').style.display = 'block';
+    g('inp-name').focus();
+  } catch(e) {
+    showErr('err-code', e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Find Exam →';
+  }
+}
+
+function backToCode() {
+  exam = null;
+  g('e-preview').style.display = 'none';
+  g('sec-details').style.display = 'none';
+  g('sec-code').style.display = 'block';
+  g('n-closed').style.display = 'none';
+}
+
+function startExam() {
+  sName = g('inp-name').value.trim();
+  sClass = g('inp-class').value.trim();
+  if(!sName || !sClass) return showErr('err-details', 'Please fill all fields');
+
+  // Parse CSV Questions
+  qs = parseCSV(exam.csv_data);
+  total = qs.length;
+  tLeft = exam.duration * 60;
+  tStart = Date.now();
+  
+  g('ex-subject').textContent = exam.subject;
+  g('ex-student').textContent = sName + ' (' + sClass + ')';
+  g('clock').style.display = 'block';
+  
+  buildNav();
+  renderQ();
+  startClock();
+  go2('exam');
+}
+
+function parseCSV(txt) {
+  // Robust CSV Parser for quoted fields and multi-line content
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < txt.length; i++) {
+    const char = txt[i];
+    const nextChar = txt[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        field += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        field += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        row.push(field.trim());
+        field = "";
+      } else if (char === '\n' || char === '\r') {
+        row.push(field.trim());
+        if (row.some(c => c !== "")) rows.push(row);
+        row = [];
+        field = "";
+        if (char === '\r' && nextChar === '\n') i++;
+      } else {
+        field += char;
+      }
+    }
+  }
+  if (field || row.length) {
+    row.push(field.trim());
+    if (row.some(c => (c||"").trim() !== "")) rows.push(row);
+  }
+
+  // Clean rows and skip header
+  const cleanRows = rows.filter(r => r.length >= 6);
+  if (cleanRows.length > 0 && cleanRows[0][0].toLowerCase().includes("question")) {
+    cleanRows.shift();
+  }
+
+  return cleanRows.map(cols => {
+    // SMART-MAPPING LOGIC:
+    // If the first column is empty, shift everything to the left
+    let finalCols = [...cols];
+    if (finalCols[0] === "" && finalCols.length > 1) {
+      finalCols.shift();
+    }
+
+    // Expected format: Question, A, B, C, D, Answer, [Explanation]
+    return {
+      q: finalCols[0] || "No Question",
+      opts: [
+        { l: 'A', t: finalCols[1] || "" },
+        { l: 'B', t: finalCols[2] || "" },
+        { l: 'C', t: finalCols[3] || "" },
+        { l: 'D', t: finalCols[4] || "" }
+      ],
+      ans: (finalCols[5] || "").toUpperCase().trim(),
+      expl: finalCols[6] || ""
+    };
+  });
+}
+
+// Auto-load from URL
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code && code.length === 6) {
+    g('inp-code').value = code.toUpperCase();
+    findExam();
+  }
+});
+
+function startClock() {
+  ticker = setInterval(() => {
+    tLeft--;
+    const m = Math.floor(tLeft/60), s = tLeft%60;
+    const timeStr = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    g('clock').textContent = timeStr;
+    g('ex-time').textContent = timeStr;
+    if(tLeft <= 60) g('clock').className = 'd';
+    if(tLeft <= 0) doSubmit();
+  }, 1000);
+}
+
+function renderQ() {
+  const q = qs[qi];
+  g('q-num').textContent = `QUESTION ${qi+1} OF ${total}`;
+  g('q-txt').textContent = q.q;
+  g('opts').innerHTML = q.opts.map(o => `
+    <button class="opt ${ans[qi]===o.l?'sel':''}" onclick="pick('${o.l}')">
+      <span class="opt-lbl">${o.l}</span>
+      <span class="opt-txt">${o.t}</span>
+    </button>
+  `).join('');
+  
+  g('btn-prev').disabled = qi === 0;
+  g('btn-next').disabled = qi === total-1;
+  g('btn-flag').className = 'btn ghost flag-btn' + (flags.has(qi)?' on':'');
+  
+  updProg();
+  updNav();
+}
+
+function pick(l) { ans[qi] = l; renderQ(); }
+function go(d) { qi += d; renderQ(); }
+function toggleFlag() { flags.has(qi) ? flags.delete(qi) : flags.add(qi); renderQ(); }
+
+function updProg() {
+  const done = Object.keys(ans).length;
+  g('prog').style.width = (done/total*100) + '%';
+  g('prog-lbl').textContent = `${done} of ${total} answered`;
+}
+
+function buildNav() {
+  g('q-grid').innerHTML = qs.map((_, i) => `<button class="qd" id="qd-${i}" onclick="qi=${i};renderQ()">${i+1}</button>`).join('');
+}
+
+function updNav() {
+  qs.forEach((_, i) => {
+    const d = g(`qd-${i}`);
+    d.className = 'qd' + (flags.has(i)?' flg':ans[i]?' ans':'') + (i===qi?' cur':'');
+  });
+}
+
+function trySubmit() {
+  if(confirm('Are you sure you want to finish the exam?')) doSubmit();
+}
+
+async function doSubmit() {
+  clearInterval(ticker);
+  tUsed = Math.round((Date.now() - tStart)/1000);
+  
+  let correct = 0;
+  qs.forEach((q, i) => { if(ans[i] === q.ans) correct++; });
+  
+  const pct = Math.round(correct/total*100);
+  g('r-score').textContent = correct;
+  g('r-total').textContent = `of ${total}`;
+  g('r-pct').textContent = `${pct}% • ${Math.floor(tUsed/60)}m ${tUsed%60}s used`;
+  g('r-who').textContent = `${sName} • ${sClass} • ${exam.subject}`;
+  g('r-c').textContent = correct;
+  g('r-w').textContent = total - correct - (total - Object.keys(ans).length);
+  g('r-s').textContent = total - Object.keys(ans).length;
+  g('r-when').textContent = `Submitted: ${new Date().toLocaleString()}`;
+  
+  buildReview();
+  go2('results');
+  
+  // Save to Supabase
+  try {
+    await sbFetch('/rest/v1/results', 'POST', {
+      exam_id: exam.id,
+      student_name: sName,
+      student_class: sClass,
+      score: correct,
+      total: total,
+      time_taken: tUsed,
+      answers: ans
+    });
+  } catch(e) { console.error('Save failed', e); }
+}
+
+function buildReview() {
+  g('rev-list').innerHTML = qs.map((q, i) => {
+    const a = ans[i], isOk = a === q.ans, isSkip = !a;
+    return `
+      <div class="ri ${isSkip?'':isOk?'ok':'bad'}">
+        <div class="rn">Q${i+1} • ${isSkip?'SKIPPED':isOk?'CORRECT':'WRONG'}</div>
+        <div class="rq">${q.q}</div>
+        <div class="ra-wrap">
+          ${isSkip ? `<div class="ra skip">Not answered. Correct: ${q.ans}</div>` : 
+            isOk ? `<div class="ra ca"><span class="tag">✓ ${a}</span> ${q.opts.find(o=>o.l===a).t}</div>` :
+            `<div class="ra wa"><span class="tag">✗ ${a}</span> ${q.opts.find(o=>o.l===a).t}</div>
+             <div class="ra ca"><span class="tag">✓ ${q.ans}</span> ${q.opts.find(o=>o.l===q.ans).t}</div>`
+          }
+        </div>
+        ${q.expl ? `<div class="expl"><div class="el">Explanation</div><div class="et">${q.expl}</div></div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+</script>
+</body>
+</html>
