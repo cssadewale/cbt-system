@@ -40,7 +40,7 @@
         .opt:hover { border-color: var(--text-muted); background: var(--surface-hover); }
         .opt.selected { border-color: var(--primary); background: rgba(16, 185, 129, 0.08); font-weight: 600; }
         
-        .nav-btn { background: var(--surface-hover); color: var(--text); }
+        .nav-btn { background: var(--surface-hover); color: var(--text); padding: 12px; }
         .nav-btn:hover { background: var(--border); }
         
         .review-card { background: var(--bg); border: 1px solid var(--border); padding: 24px; border-radius: 12px; margin-bottom: 16px; }
@@ -103,24 +103,19 @@
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
     let exam = null, questions = [], current = 0, answers = {}, timeLeft = 0, attemptNum = 1, examInterval;
 
-    document.addEventListener("visibilitychange", () => {
-        if (document.hidden && exam && !document.getElementById('exam-card').classList.contains('hidden')) {
-            alert("⚠️ SYSTEM ALERT: Leaving the testing window is monitored and logged.");
-        }
-    });
-
     async function init() {
         const code = new URLSearchParams(window.location.search).get('code');
         if(!code) return document.getElementById('status-msg').innerHTML = "No exam code provided in URL.";
         
         try {
-            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { 
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
+            });
             const data = await res.json();
             
             if (!data || !data.length || String(data[0].is_open) === "false") {
                 document.getElementById('status-msg').innerHTML = "<span style='color:#ef4444'>Access Denied: Exam is currently closed or invalid.</span>";
                 document.getElementById('start-btn').disabled = true;
-                document.getElementById('start-btn').style.opacity = '0.5';
                 return;
             }
 
@@ -141,6 +136,7 @@
         btn.innerText = "Verifying..."; btn.disabled = true;
 
         try {
+            // Updated fetch with 'count=exact' for better results handling
             const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(name)}&student_class=eq.${encodeURIComponent(sClass)}&exam_id=eq.${exam.id}`, {
                 headers: { 
                     'apikey': SB_KEY, 
@@ -151,7 +147,7 @@
 
             if (!res.ok) {
                 const errData = await res.json();
-                throw new Error(errData.message || "Database connection error");
+                throw new Error(errData.message || "Unknown Database Error");
             }
 
             const history = await res.json();
@@ -165,7 +161,8 @@
             startExam();
         } catch(e) { 
             console.error(e);
-            alert("Connection Error: Please ensure you have applied the SQL RLS policies in the Supabase Dashboard to allow 'Anonymous' access."); 
+            // This now shows the ACTUAL error from Supabase to help us fix it
+            alert("Database Error: " + e.message + "\n\nTip: Ensure you ran the SQL script in your Supabase Editor."); 
             btn.innerText = "Begin Assessment"; 
             btn.disabled = false; 
         }
@@ -192,7 +189,6 @@
         document.getElementById('progress-bar').style.width = `${((current + 1) / questions.length) * 100}%`;
         
         const box = document.getElementById('options-box'); box.innerHTML = '';
-        
         ['A','B','C','D'].forEach(l => {
             if(!q[l.toLowerCase()]) return;
             const btn = document.createElement('div');
@@ -201,12 +197,11 @@
             btn.onclick = () => { answers[current] = l; showQ(); };
             box.appendChild(btn);
         });
-        
         document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Assessment ✓" : "Next Question →";
     }
 
     function clearSelection() { delete answers[current]; showQ(); }
-    function next() { if (current < questions.length - 1) { current++; showQ(); } else if(confirm("Are you sure you want to submit your final answers?")) submitExam(); }
+    function next() { if (current < questions.length - 1) { current++; showQ(); } else if(confirm("Submit your final answers?")) submitExam(); }
     function prev() { if (current > 0) { current--; showQ(); } }
 
     async function submitExam() {
@@ -225,20 +220,17 @@
         document.getElementById('review-list').innerHTML = questions.map((q, i) => {
             const hasAnswered = answers[i] !== undefined;
             const isCorrect = answers[i] === q.ans;
-            
             let tagClass = 'tag-skip', tagText = '— SKIPPED';
             if (hasAnswered) {
                 tagClass = isCorrect ? 'tag-correct' : 'tag-wrong';
                 tagText = isCorrect ? '✓ CORRECT' : '✕ INCORRECT';
             }
-
-            return `
-            <div class="review-card">
+            return `<div class="review-card">
                 <div class="review-tag ${tagClass}">${tagText}</div>
                 <div style="font-weight:600; font-size:16px; margin-bottom:12px">${i+1}. ${q.q}</div>
                 <div style="font-size:14px; color:var(--text-muted); margin-bottom:8px">Your Selection: <span style="color:${isCorrect?'var(--primary)':'#ef4444'}; font-weight:700">${answers[i] || 'None'}</span></div>
                 ${!isCorrect ? `<div style="font-size:14px; color:var(--text-muted)">Correct Answer: <span style="color:var(--primary); font-weight:700">${q.ans}</span></div>` : ''}
-                <div class="exp-box"><strong>Explanation:</strong><br>${q.exp || 'No explanation provided by instructor.'}</div>
+                <div class="exp-box"><strong>Explanation:</strong><br>${q.exp || 'No explanation provided.'}</div>
             </div>`;
         }).join('');
 
@@ -253,7 +245,7 @@
                     time_taken: timeTaken
                 })
             });
-        } catch(e) { console.error("Could not upload result to server"); }
+        } catch(e) { console.error("Could not upload result"); }
     }
     init();
 </script>
