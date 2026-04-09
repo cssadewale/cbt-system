@@ -1,54 +1,85 @@
-
-</
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CBT Admin</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
-:root { --bg:#09090b; --surface:#18181b; --primary:#10b981; --border:#27272a; --text:#f4f4f5; --muted:#a1a1aa; }
+:root { --bg:#09090b; --surface:#18181b; --primary:#10b981; --border:#27272a; --text:#f4f4f5; }
 body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);padding:30px}
 .card{background:var(--surface);padding:25px;border-radius:16px;margin-bottom:20px;border:1px solid var(--border)}
 input,select{width:100%;padding:14px;margin-bottom:12px;border-radius:10px;border:1px solid var(--border);background:#000;color:#fff}
 button{padding:12px 16px;background:var(--primary);border:none;border-radius:10px;font-weight:700;cursor:pointer}
+.small{padding:6px 10px;margin-left:5px}
 .hidden{display:none}
 </style>
 </head>
-<body><div id="auth" class="card">
+
+<body>
+
+<div id="auth" class="card">
 <h2>Teacher Login</h2>
 <input id="email" placeholder="Email">
 <input id="pass" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
 <button onclick="signup()">Sign Up</button>
-</div><div id="main" class="hidden">
+</div>
+
+<div id="main" class="hidden">
+
 <div class="card">
 <h2>Create Exam</h2>
 <input id="sub" placeholder="Subject">
-<input id="dur" type="number" placeholder="Duration">
-<select id="limit"><option value="1">1 Attempt</option><option value="2">2 Attempts</option></select>
+<input id="dur" type="number" placeholder="Duration (mins)">
+<select id="limit">
+<option value="1">1 Attempt</option>
+<option value="2">2 Attempts</option>
+<option value="999">Unlimited</option>
+</select>
+<input id="count" type="number" placeholder="Question Count (0 = all)">
+<input id="pin" placeholder="Optional PIN">
 <input id="csv" type="file">
 <button onclick="createExam()">Publish</button>
-</div><div class="card">
+</div>
+
+<div class="card">
 <h2>Exams</h2>
 <div id="list"></div>
 </div>
-</div><script>
+
+</div>
+
+<script>
 const SB_URL='https://pstnsaqjshmtintjrnas.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+
 let session=null,pool=[],exams=[];
 
 async function login(){
- const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:pass.value})});
+ const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{
+  method:'POST',
+  headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+  body:JSON.stringify({email:email.value,password:pass.value})
+ });
  session=await r.json();
- if(session.access_token){auth.classList.add('hidden');main.classList.remove('hidden');load();}
- else alert('Login failed');
+
+ if(session.access_token){
+  auth.classList.add('hidden');
+  main.classList.remove('hidden');
+  load();
+ } else alert("Login failed");
 }
 
 async function signup(){
- await fetch(`${SB_URL}/auth/v1/signup`,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:pass.value})});
- alert('Signup successful, now login');
+ await fetch(`${SB_URL}/auth/v1/signup`,{
+  method:'POST',
+  headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+  body:JSON.stringify({email:email.value,password:pass.value})
+ });
+ alert("Signup successful");
 }
 
 csv.onchange=e=>{
@@ -57,28 +88,74 @@ csv.onchange=e=>{
   const lines=r.result.split(/\r?\n/).filter(l=>l.trim());
   pool=lines.slice(1).map(l=>{
    const p=l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-   return {q:p[0],a:p[1],b:p[2],c:p[3],d:p[4],ans:p[5]};
+   return {q:p[0],a:p[1],b:p[2],c:p[3],d:p[4],ans:p[5],exp:p[6]};
   });
  };
  r.readAsText(e.target.files[0]);
 };
 
 async function createExam(){
- if(!pool.length) return alert('Upload CSV');
- await fetch(`${SB_URL}/rest/v1/exams`,{method:'POST',headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({subject:sub.value,duration:dur.value,attempt_limit:limit.value,code:Math.random().toString(36).substring(2,7),csv_data:JSON.stringify(pool),teacher_id:session.user.id})});
+ if(!pool.length) return alert("Upload CSV");
+
+ await fetch(`${SB_URL}/rest/v1/exams`,{
+  method:'POST',
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},
+  body:JSON.stringify({
+   subject:sub.value,
+   duration:dur.value,
+   attempt_limit:limit.value,
+   select_count:count.value||0,
+   pin:pin.value||null,
+   code:Math.random().toString(36).substring(2,7).toUpperCase(),
+   csv_data:JSON.stringify(pool),
+   teacher_id:session.user.id,
+   is_open:true
+  })
+ });
+
  load();
 }
 
 async function load(){
- const r=await fetch(`${SB_URL}/rest/v1/exams?teacher_id=eq.${session.user.id}`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`}});
+ const r=await fetch(`${SB_URL}/rest/v1/exams?teacher_id=eq.${session.user.id}`,{
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`}
+ });
  exams=await r.json();
- list.innerHTML=exams.map(e=>`<div>${e.subject} (${e.code}) <button onclick="del('${e.id}')">Delete</button></div>`).join('');
+
+ list.innerHTML=exams.map(e=>`
+ <div style="margin-bottom:10px">
+ ${e.subject} | Code: ${e.code}
+ <button class="small" onclick="toggle('${e.id}',${e.is_open})">${e.is_open?'Close':'Open'}</button>
+ <button class="small" onclick="copy('${e.code}')">Copy Link</button>
+ <button class="small" onclick="del('${e.id}')">Delete</button>
+ </div>
+ `).join('');
+}
+
+function copy(code){
+ const link=location.origin+'/student.html?code='+code;
+ navigator.clipboard.writeText(link);
+ alert("Link copied");
+}
+
+async function toggle(id,state){
+ await fetch(`${SB_URL}/rest/v1/exams?id=eq.${id}`,{
+  method:'PATCH',
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},
+  body:JSON.stringify({is_open:!state})
+ });
+ load();
 }
 
 async function del(id){
- if(!confirm('Delete?')) return;
- await fetch(`${SB_URL}/rest/v1/exams?id=eq.${id}`,{method:'DELETE',headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`}});
+ if(!confirm("Delete exam?")) return;
+ await fetch(`${SB_URL}/rest/v1/exams?id=eq.${id}`,{
+  method:'DELETE',
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${session.access_token}`}
+ });
  load();
 }
-</script></body>
+</script>
+
+</body>
 </html>
