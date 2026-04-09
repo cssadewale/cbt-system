@@ -3,84 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT Tutor Pro — Dashboard</title>
+    <title>CBT.ng — Teacher Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0d1117; --sf:#161b22; --bd:#2a3442; --ac:#00c896; --tx:#e6edf3; --err:#ff4d4d; }
-        body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--tx); padding: 20px; }
-        .card { background: var(--sf); border: 1px solid var(--bd); padding: 20px; border-radius: 12px; margin-bottom: 20px; max-width: 900px; margin-inline: auto; }
-        input, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--bd); background: #1e2530; color: white; }
-        button { background: var(--ac); color: var(--bg); font-weight: bold; cursor: pointer; border: none; transition: 0.3s; }
+        :root { --bg:#0d1117; --sf:#161b22; --bd:#2a3442; --ac:#00c896; --tx:#e6edf3; --err:#e05252; }
+        body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--tx); padding: 20px; line-height: 1.6; }
+        .card { background: var(--sf); border: 1px solid var(--bd); padding: 25px; border-radius: 12px; margin-bottom: 20px; max-width: 900px; margin-inline: auto; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--bd); background: #1e2530; color: white; font-family: inherit; }
+        button { background: var(--ac); color: var(--bg); font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
         button:hover { opacity: 0.8; }
-        .btn-sec { background: transparent; color: var(--ac); border: 1px solid var(--ac); width: auto; padding: 5px 15px; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .btn-outline { background: transparent; color: var(--ac); border: 1px solid var(--ac); }
+        .btn-danger { background: var(--err); color: white; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .open { background: #00c89622; color: var(--ac); }
+        .closed { background: #e0525222; color: var(--err); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--bd); }
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100; overflow-y:auto; }
-        .modal-content { background:var(--sf); margin: 5% auto; padding: 30px; width: 80%; border-radius: 12px; }
-        .correct-ans { color: var(--ac); font-weight: bold; }
-        .live-badge { background: var(--ac); color: var(--bg); padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div id="auth-section" class="card" style="max-width:400px">
-    <h2>Tutor Access</h2>
-    <input type="email" id="email" placeholder="Email">
+<div id="auth-box" class="card" style="max-width:400px; margin-top: 50px;">
+    <h2 id="auth-title">Tutor Login</h2>
+    <input type="email" id="email" placeholder="Email Address">
     <input type="password" id="pass" placeholder="Password">
-    <button onclick="handleAuth()">Login / Sign Up</button>
+    <div id="login-flow">
+        <button onclick="handleAuth('login')">Login to Dashboard</button>
+        <p style="text-align:center; font-size:13px; margin-top:10px">First time? <a href="#" onclick="toggleAuth(true)" style="color:var(--ac)">Create an account</a></p>
+    </div>
+    <div id="signup-flow" class="hidden">
+        <button onclick="handleAuth('signup')">Create My Account</button>
+        <p style="text-align:center; font-size:13px; margin-top:10px">Already have an account? <a href="#" onclick="toggleAuth(false)" style="color:var(--ac)">Login here</a></p>
+    </div>
 </div>
 
-<div id="main-dash" style="display:none;">
+<div id="main-dash" class="hidden">
     <div class="card">
-        <h2>Set New Exam</h2>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-            <input type="text" id="ex-sub" placeholder="Subject Name">
-            <input type="number" id="ex-dur" placeholder="Minutes">
+        <h2>Create New Examination</h2>
+        <div class="grid">
+            <input type="text" id="ex-sub" placeholder="Subject (e.g. Physics)">
+            <input type="number" id="ex-dur" placeholder="Duration (Mins)">
         </div>
-        <label style="font-size:12px; color:var(--ac)">CSV Format: Question, A, B, C, D, Answer, Explanation</label>
+        <div class="grid">
+            <select id="ex-limit">
+                <option value="1">Allow 1 Attempt</option>
+                <option value="2">Allow 2 Attempts</option>
+                <option value="3">Allow 3 Attempts</option>
+                <option value="999">Multiple (Unlimited)</option>
+            </select>
+            <input type="number" id="ex-count" placeholder="Questions to show (e.g. 50)">
+        </div>
+        <label style="font-size:12px; color:var(--ac)">CSV: Numbering, Question, A, B, C, D, Answer, Explanation</label>
         <input type="file" id="csv-file" accept=".csv">
-        <div id="csv-status" style="font-size:12px; margin-bottom:10px"></div>
-        <button onclick="createExam()">Create & Generate Student Link</button>
+        <button onclick="createExam()">Upload & Launch Exam</button>
     </div>
 
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center">
-            <h2>Exam Management</h2>
-            <div id="live-count" class="live-badge">0 Students Submitted</div>
-        </div>
+        <h2>Manage Active Exams</h2>
         <div id="exam-list"></div>
     </div>
 
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center">
-            <h2>Results Analysis</h2>
-            <button class="btn-sec" onclick="exportResults()">Download Scores (Excel)</button>
+            <h2>Student Results</h2>
+            <button class="btn-outline" style="width:auto" onclick="exportResults()">Export to Excel</button>
         </div>
         <input type="text" id="res-search" placeholder="Search student name or class..." onkeyup="filterResults()">
         <table id="results-table">
-            <thead><tr><th>Name</th><th>Class</th><th>Score</th><th>Time</th><th>Date</th></tr></thead>
+            <thead><tr><th>Name</th><th>Class</th><th>Score</th><th>Attempt</th><th>Date</th></tr></thead>
             <tbody id="results-body"></tbody>
         </table>
-    </div>
-</div>
-
-<div id="preview-modal" class="modal">
-    <div class="modal-content">
-        <div style="display:flex; justify-content:space-between">
-            <h2>Question Preview</h2>
-            <button onclick="closeModal()" style="width:auto; background:var(--err)">Close</button>
-        </div>
-        <hr style="border:0; border-top:1px solid var(--bd); margin:20px 0">
-        <div id="preview-body"></div>
     </div>
 </div>
 
 <script>
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-    let session = null;
-    let questions = [];
-    let allResults = [];
+    let session = null, questions = [], allResults = [];
+
+    function toggleAuth(isSignup) {
+        document.getElementById('auth-title').innerText = isSignup ? "Tutor Sign Up" : "Tutor Login";
+        document.getElementById('login-flow').classList.toggle('hidden', isSignup);
+        document.getElementById('signup-flow').classList.toggle('hidden', !isSignup);
+    }
 
     async function sbFetch(path, method = 'GET', body = null) {
         const token = session ? session.access_token : SB_KEY;
@@ -89,43 +96,54 @@
             headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
             body: body ? JSON.stringify(body) : null
         });
-        return res.json();
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error_description || data.msg || "Action Failed");
+        return data;
     }
 
-    async function handleAuth() {
+    async function handleAuth(type) {
         const email = document.getElementById('email').value;
         const password = document.getElementById('pass').value;
-        const data = await sbFetch('/auth/v1/token?grant_type=password', 'POST', { email, password });
-        if (data.access_token) {
-            session = data;
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('main-dash').style.display = 'block';
-            loadExams();
-            loadResults();
-        } else { alert("Auth failed. Check credentials."); }
+        try {
+            if(type === 'signup') {
+                await sbFetch('/auth/v1/signup', 'POST', { email, password });
+                alert("Account created! You can now login.");
+                toggleAuth(false);
+            } else {
+                session = await sbFetch('/auth/v1/token?grant_type=password', 'POST', { email, password });
+                document.getElementById('auth-box').classList.add('hidden');
+                document.getElementById('main-dash').classList.remove('hidden');
+                loadExams(); loadResults();
+            }
+        } catch (e) { alert(e.message); }
     }
 
-    // CSV Validation
     document.getElementById('csv-file').addEventListener('change', function(e) {
         const reader = new FileReader();
         reader.onload = function() {
             const lines = reader.result.split(/\r?\n/).filter(l => l.trim());
+            // Handles CSV even if there are commas in the questions (using quotes)
             questions = lines.slice(1).map(line => {
                 const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                return { q: p[0], a: p[1], b: p[2], c: p[3], d: p[4], ans: p[5]?.trim().toUpperCase(), exp: p[6] };
+                return { q: p[1], a: p[2], b: p[3], c: p[4], d: p[5], ans: p[6]?.trim().toUpperCase(), exp: p[7] };
             });
-            document.getElementById('csv-status').innerHTML = `<span style="color:var(--ac)">✓ ${questions.length} questions validated.</span>`;
+            alert(questions.length + " questions detected.");
         };
         reader.readAsText(e.target.files[0]);
     });
 
     async function createExam() {
-        const subject = document.getElementById('ex-sub').value;
-        const duration = document.getElementById('ex-dur').value;
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        await sbFetch('/rest/v1/exams', 'POST', { subject, duration, code, csv_data: JSON.stringify(questions), teacher_id: session.user.id });
-        alert("Exam Created!");
-        loadExams();
+        const payload = {
+            subject: document.getElementById('ex-sub').value,
+            duration: document.getElementById('ex-dur').value,
+            attempt_limit: document.getElementById('ex-limit').value,
+            select_count: document.getElementById('ex-count').value || 0,
+            code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+            csv_data: JSON.stringify(questions),
+            teacher_id: session.user.id
+        };
+        await sbFetch('/rest/v1/exams', 'POST', payload);
+        alert("Exam Published!"); loadExams();
     }
 
     async function loadExams() {
@@ -134,62 +152,52 @@
         document.getElementById('exam-list').innerHTML = exams.map(e => `
             <div style="padding:15px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; align-items:center">
                 <div>
-                    <strong>${e.subject}</strong> (<code>${e.code}</code>)<br>
+                    <strong>${e.subject}</strong> <span class="status-badge ${e.is_open?'open':'closed'}">${e.is_open?'OPEN':'CLOSED'}</span><br>
                     <small>${baseUrl}?code=${e.code}</small>
                 </div>
-                <button class="btn-sec" onclick='openPreview(${JSON.stringify(e.csv_data)})'>View Qs</button>
+                <div style="display:flex; gap:5px">
+                    <button class="btn-outline" style="width:auto" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Close':'Open'}</button>
+                    <button class="btn-danger" style="width:auto" onclick="deleteExam('${e.id}')">Delete</button>
+                </div>
             </div>
         `).join('');
     }
 
-    function openPreview(qs) {
-        const data = typeof qs === 'string' ? JSON.parse(qs) : qs;
-        document.getElementById('preview-body').innerHTML = data.map((q, i) => `
-            <div style="margin-bottom:20px">
-                <p><strong>Q${i+1}: ${q.q}</strong></p>
-                <p>A: ${q.a} | B: ${q.b} | C: ${q.c} | D: ${q.d}</p>
-                <p class="correct-ans">Correct: ${q.ans}</p>
-                <p style="font-style:italic; color:var(--mu)">Reason: ${q.exp || 'No explanation provided'}</p>
-            </div>
-        `).join('');
-        document.getElementById('preview-modal').style.display = 'block';
+    async function toggleStatus(id, current) {
+        await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'PATCH', { is_open: !current });
+        loadExams();
+    }
+
+    async function deleteExam(id) {
+        if(confirm("Delete this exam and all its results?")) {
+            await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'DELETE');
+            loadExams();
+        }
     }
 
     async function loadResults() {
         allResults = await sbFetch('/rest/v1/results?select=*,exams(subject)&order=created_at.desc');
-        document.getElementById('live-count').innerText = `${allResults.length} Students Submitted`;
         renderResults(allResults);
     }
 
     function renderResults(data) {
         document.getElementById('results-body').innerHTML = data.map(r => `
-            <tr>
-                <td>${r.student_name}</td>
-                <td>${r.student_class}</td>
-                <td style="color:var(--ac)">${r.score}/${r.total}</td>
-                <td>${Math.floor(r.time_taken/60)}m</td>
-                <td>${new Date(r.created_at).toLocaleDateString()}</td>
-            </tr>
+            <tr><td>${r.student_name}</td><td>${r.student_class}</td><td style="color:var(--ac)">${r.score}/${r.total}</td>
+            <td>Attempt #${r.attempt_number || 1}</td><td>${new Date(r.created_at).toLocaleDateString()}</td></tr>
         `).join('');
     }
 
     function filterResults() {
-        const query = document.getElementById('res-search').value.toLowerCase();
-        const filtered = allResults.filter(r => r.student_name.toLowerCase().includes(query) || r.student_class.toLowerCase().includes(query));
-        renderResults(filtered);
+        const q = document.getElementById('res-search').value.toLowerCase();
+        renderResults(allResults.filter(r => r.student_name.toLowerCase().includes(q) || r.student_class.toLowerCase().includes(q)));
     }
 
     function exportResults() {
-        const csvContent = "data:text/csv;charset=utf-8,Name,Class,Score,Total,Date\n" + 
-            allResults.map(r => `${r.student_name},${r.student_class},${r.score},${r.total},${r.created_at}`).join("\n");
-        const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", "student_scores.csv");
-        document.body.appendChild(link);
-        link.click();
+        let csv = "Name,Class,Score,Total,Attempt,Date\n" + allResults.map(r => `${r.student_name},${r.student_class},${r.score},${r.total},${r.attempt_number},${r.created_at}`).join("\n");
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'results.csv'; a.click();
     }
-
-    function closeModal() { document.getElementById('preview-modal').style.display = 'none'; }
 </script>
 </body>
 </html>
