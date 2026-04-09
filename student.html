@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Portal | Assessment</title>
+    <title>Student Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #09090b; --surface: #18181b; --primary: #10b981; --border: #27272a; --text: #f4f4f5; --text-muted: #a1a1aa; }
@@ -20,9 +20,9 @@
 
 <div id="entry-card" class="card">
     <h2 style="text-align:center">Student Portal</h2>
-    <p id="status-msg" style="text-align:center; color:var(--text-muted)">Verify details to start.</p>
+    <p style="text-align:center; color:var(--text-muted)">Verify details to start.</p>
     <input type="text" id="s-name" placeholder="Full Name">
-    <input type="text" id="s-class" placeholder="Class (e.g. SSS 1)">
+    <input type="text" id="s-class" placeholder="Class">
     <button id="start-btn" onclick="validateAttempt()">Start Assessment</button>
 </div>
 
@@ -31,7 +31,7 @@
         <span id="progress-text"></span>
         <span id="timer" style="color:var(--primary); font-weight:800;"></span>
     </div>
-    <div id="q-text" style="font-size:22px; margin-bottom:30px;"></div>
+    <div id="q-text" style="font-size: 20px; margin-bottom:30px;"></div>
     <div id="options-box"></div>
     <div style="display:flex; gap:10px; margin-top:20px">
         <button onclick="prev()" style="background:var(--border); color:#fff; width:100px;">Back</button>
@@ -40,7 +40,7 @@
 </div>
 
 <div id="result-view" class="card hidden" style="max-width: 800px; text-align:center;">
-    <h2>Results Saved</h2>
+    <h2>Results Saved Successfully</h2>
     <h1 id="score-text" style="color:var(--primary); font-size:72px;"></h1>
 </div>
 
@@ -67,18 +67,18 @@
         if(!n || !c) return alert("Fill in details.");
 
         const btn = document.getElementById('start-btn');
-        btn.innerText = "Connecting..."; btn.disabled = true;
+        btn.innerText = "Checking..."; btn.disabled = true;
 
         try {
-            // Added headers to solve 406
+            // Simplified fetch to avoid 406 error
             const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}`, {
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Accept': 'application/json' }
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
             });
             const history = await res.json();
             attemptNum = (history ? history.length : 0) + 1;
             startExam();
         } catch(e) { 
-            alert("Connection Error. Run SQL script!"); 
+            alert("Connection Error. Please ensure the SQL script was run."); 
             btn.innerText = "Start Assessment"; btn.disabled = false;
         }
     }
@@ -102,9 +102,11 @@
         document.getElementById('progress-text').innerText = `Q ${current+1}/${questions.length}`;
         const box = document.getElementById('options-box'); box.innerHTML = '';
         ['A','B','C','D'].forEach(l => {
+            const val = q[l.toLowerCase()];
+            if(!val) return;
             const dv = document.createElement('div');
             dv.className = `opt ${answers[current] === l ? 'selected' : ''}`;
-            dv.innerHTML = `<b>${l}.</b> ${q[l.toLowerCase()]}`;
+            dv.innerHTML = `<b>${l}.</b> ${val}`;
             dv.onclick = () => { answers[current] = l; showQ(); };
             box.appendChild(dv);
         });
@@ -114,6 +116,7 @@
         if(current < questions.length - 1) { current++; showQ(); } 
         else if(confirm("Submit?")) submitExam(); 
     }
+    
     function prev() { if(current > 0) { current--; showQ(); } }
 
     async function submitExam() {
@@ -125,18 +128,22 @@
         document.getElementById('result-view').classList.remove('hidden');
         document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
 
+        // Raw POST request to avoid policy/406 issues
         await fetch(`${SB_URL}/rest/v1/results`, {
             method: 'POST',
             headers: { 
                 'apikey': SB_KEY, 
                 'Authorization': `Bearer ${SB_KEY}`, 
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Prefer': 'return=minimal' 
             },
             body: JSON.stringify({
-                exam_id: exam.id, student_name: document.getElementById('s-name').value,
+                exam_id: exam.id, 
+                student_name: document.getElementById('s-name').value,
                 student_class: document.getElementById('s-class').value,
-                score, total: questions.length, attempt_number: attemptNum,
+                score: score, 
+                total: questions.length, 
+                attempt_number: attemptNum,
                 time_taken: (exam.duration * 60) - timeLeft
             })
         });
