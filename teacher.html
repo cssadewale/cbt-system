@@ -202,7 +202,16 @@
             const lines = reader.result.split(/\r?\n/).filter(l => l.trim());
             questionsPool = lines.slice(1).map(line => {
                 const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                return { q: p[1]?.replace(/^"|"$/g, ''), a: p[2], b: p[3], c: p[4], d: p[5], ans: p[6]?.trim().toUpperCase(), exp: p[7]?.replace(/^"|"$/g, '') };
+                // FIXED: Array mapped correctly starting from index 0
+                return { 
+                    q: p[0]?.replace(/^"|"$/g, ''), 
+                    a: p[1], 
+                    b: p[2], 
+                    c: p[3], 
+                    d: p[4], 
+                    ans: p[5]?.trim().toUpperCase(), 
+                    exp: p[6]?.replace(/^"|"$/g, '') 
+                };
             });
             showToast(`Successfully parsed ${questionsPool.length} questions.`);
         };
@@ -223,7 +232,8 @@
 
     async function loadExams() {
         allExams = await sbFetch('/rest/v1/exams?select=*&order=created_at.desc');
-        const baseUrl = window.location.href.replace('teacher.html', 'student.html');
+        // FIXED: Robust regex URL replace that ignores trailing numbers in file names
+        const baseUrl = window.location.href.replace(/teacher[^/]*\.html/i, 'student.html');
         document.getElementById('exam-list').innerHTML = allExams.map(e => `
             <div style="padding:20px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px">
                 <div>
