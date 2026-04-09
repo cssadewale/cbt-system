@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT.ng — Teacher Pro</title>
+    <title>CBT.ng — Tutor Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0d1117; --sf:#161b22; --bd:#2a3442; --ac:#00c896; --tx:#e6edf3; --err:#e05252; }
+        :root { --bg:#0d1117; --sf:#161b22; --sf2:#1e2530; --bd:#2a3442; --ac:#00c896; --tx:#e6edf3; --err:#e05252; }
         body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--tx); padding: 20px; line-height: 1.6; }
         .card { background: var(--sf); border: 1px solid var(--bd); padding: 25px; border-radius: 12px; margin-bottom: 20px; max-width: 900px; margin-inline: auto; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--bd); background: #1e2530; color: white; font-family: inherit; }
         button { background: var(--ac); color: var(--bg); font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
         button:hover { opacity: 0.8; }
-        .btn-outline { background: transparent; color: var(--ac); border: 1px solid var(--ac); }
-        .btn-danger { background: var(--err); color: white; }
+        .btn-outline { background: transparent; color: var(--ac); border: 1px solid var(--ac); width: auto; padding: 8px 15px; font-size: 13px; }
+        .btn-danger { background: var(--err); color: white; width: auto; padding: 8px 15px; font-size: 13px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .open { background: #00c89622; color: var(--ac); }
         .closed { background: #e0525222; color: var(--err); }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
@@ -29,50 +29,54 @@
     <h2 id="auth-title">Tutor Login</h2>
     <input type="email" id="email" placeholder="Email Address">
     <input type="password" id="pass" placeholder="Password">
+    
     <div id="login-flow">
         <button onclick="handleAuth('login')">Login to Dashboard</button>
-        <p style="text-align:center; font-size:13px; margin-top:10px">First time? <a href="#" onclick="toggleAuth(true)" style="color:var(--ac)">Create an account</a></p>
+        <p style="text-align:center; font-size:13px; margin-top:15px">New Tutor? <a href="#" onclick="toggleAuth(true)" style="color:var(--ac)">Create account</a></p>
     </div>
+
     <div id="signup-flow" class="hidden">
-        <button onclick="handleAuth('signup')">Create My Account</button>
-        <p style="text-align:center; font-size:13px; margin-top:10px">Already have an account? <a href="#" onclick="toggleAuth(false)" style="color:var(--ac)">Login here</a></p>
+        <button onclick="handleAuth('signup')">Sign Up</button>
+        <p style="text-align:center; font-size:13px; margin-top:15px">Already have an account? <a href="#" onclick="toggleAuth(false)" style="color:var(--ac)">Login</a></p>
     </div>
 </div>
 
 <div id="main-dash" class="hidden">
     <div class="card">
-        <h2>Create New Examination</h2>
+        <h2>Set New Examination</h2>
         <div class="grid">
-            <input type="text" id="ex-sub" placeholder="Subject (e.g. Physics)">
-            <input type="number" id="ex-dur" placeholder="Duration (Mins)">
+            <input type="text" id="ex-sub" placeholder="Subject Name">
+            <input type="number" id="ex-dur" placeholder="Duration (Minutes)">
         </div>
         <div class="grid">
             <select id="ex-limit">
-                <option value="1">Allow 1 Attempt</option>
-                <option value="2">Allow 2 Attempts</option>
-                <option value="3">Allow 3 Attempts</option>
-                <option value="999">Multiple (Unlimited)</option>
+                <option value="1">1 Attempt Allowed</option>
+                <option value="2">2 Attempts Allowed</option>
+                <option value="3">3 Attempts Allowed</option>
+                <option value="999">Unlimited Attempts</option>
             </select>
-            <input type="number" id="ex-count" placeholder="Questions to show (e.g. 50)">
+            <input type="number" id="ex-count" placeholder="No. of Qs to show (0 for all)">
         </div>
-        <label style="font-size:12px; color:var(--ac)">CSV: Numbering, Question, A, B, C, D, Answer, Explanation</label>
+        <label style="font-size:11px; color:var(--ac)">CSV Format: No, Question, A, B, C, D, Answer, Explanation</label>
         <input type="file" id="csv-file" accept=".csv">
-        <button onclick="createExam()">Upload & Launch Exam</button>
+        <button onclick="createExam()">Publish Examination</button>
     </div>
 
     <div class="card">
-        <h2>Manage Active Exams</h2>
+        <h2>Existing Examinations</h2>
         <div id="exam-list"></div>
     </div>
 
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center">
-            <h2>Student Results</h2>
-            <button class="btn-outline" style="width:auto" onclick="exportResults()">Export to Excel</button>
+            <h2>Consolidated Results</h2>
+            <button class="btn-outline" onclick="exportResults()">Download CSV</button>
         </div>
-        <input type="text" id="res-search" placeholder="Search student name or class..." onkeyup="filterResults()">
+        <input type="text" id="res-search" placeholder="Search by name or class..." onkeyup="filterResults()">
         <table id="results-table">
-            <thead><tr><th>Name</th><th>Class</th><th>Score</th><th>Attempt</th><th>Date</th></tr></thead>
+            <thead>
+                <tr><th>Student</th><th>Class</th><th>Score</th><th>Attempt</th><th>Date</th></tr>
+            </thead>
             <tbody id="results-body"></tbody>
         </table>
     </div>
@@ -81,7 +85,7 @@
 <script>
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-    let session = null, questions = [], allResults = [];
+    let session = null, questionsPool = [], allResults = [];
 
     function toggleAuth(isSignup) {
         document.getElementById('auth-title').innerText = isSignup ? "Tutor Sign Up" : "Tutor Login";
@@ -93,12 +97,20 @@
         const token = session ? session.access_token : SB_KEY;
         const res = await fetch(`${SB_URL}${path}`, {
             method,
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+            headers: { 
+                'apikey': SB_KEY, 
+                'Authorization': `Bearer ${token}`, 
+                'Content-Type': 'application/json' 
+            },
             body: body ? JSON.stringify(body) : null
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error_description || data.msg || "Action Failed");
-        return data;
+        
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || "Request failed");
+        }
+        const text = await res.text();
+        return text ? JSON.parse(text) : {};
     }
 
     async function handleAuth(type) {
@@ -107,7 +119,7 @@
         try {
             if(type === 'signup') {
                 await sbFetch('/auth/v1/signup', 'POST', { email, password });
-                alert("Account created! You can now login.");
+                alert("Account created! Please login.");
                 toggleAuth(false);
             } else {
                 session = await sbFetch('/auth/v1/token?grant_type=password', 'POST', { email, password });
@@ -122,56 +134,63 @@
         const reader = new FileReader();
         reader.onload = function() {
             const lines = reader.result.split(/\r?\n/).filter(l => l.trim());
-            // Handles CSV even if there are commas in the questions (using quotes)
-            questions = lines.slice(1).map(line => {
+            questionsPool = lines.slice(1).map(line => {
                 const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 return { q: p[1], a: p[2], b: p[3], c: p[4], d: p[5], ans: p[6]?.trim().toUpperCase(), exp: p[7] };
             });
-            alert(questions.length + " questions detected.");
+            alert(`Parsed ${questionsPool.length} questions successfully.`);
         };
         reader.readAsText(e.target.files[0]);
     });
 
     async function createExam() {
+        if (questionsPool.length === 0) return alert("Please upload a CSV file first.");
         const payload = {
             subject: document.getElementById('ex-sub').value,
             duration: document.getElementById('ex-dur').value,
             attempt_limit: document.getElementById('ex-limit').value,
             select_count: document.getElementById('ex-count').value || 0,
             code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-            csv_data: JSON.stringify(questions),
+            csv_data: JSON.stringify(questionsPool),
             teacher_id: session.user.id
         };
-        await sbFetch('/rest/v1/exams', 'POST', payload);
-        alert("Exam Published!"); loadExams();
+        try {
+            await sbFetch('/rest/v1/exams', 'POST', payload);
+            alert("Examination has been published!");
+            loadExams();
+        } catch(e) { alert(e.message); }
     }
 
     async function loadExams() {
-        const exams = await sbFetch('/rest/v1/exams?select=*');
+        const exams = await sbFetch('/rest/v1/exams?select=*&order=created_at.desc');
         const baseUrl = window.location.href.replace('teacher.html', 'student.html');
         document.getElementById('exam-list').innerHTML = exams.map(e => `
             <div style="padding:15px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; align-items:center">
                 <div>
-                    <strong>${e.subject}</strong> <span class="status-badge ${e.is_open?'open':'closed'}">${e.is_open?'OPEN':'CLOSED'}</span><br>
-                    <small>${baseUrl}?code=${e.code}</small>
+                    <strong>${e.subject}</strong> <span class="status-badge ${e.is_open?'open':'closed'}">${e.is_open?'Open':'Closed'}</span><br>
+                    <small style="color:var(--ac)">Code: ${e.code} | Link: ${baseUrl}?code=${e.code}</small>
                 </div>
-                <div style="display:flex; gap:5px">
-                    <button class="btn-outline" style="width:auto" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Close':'Open'}</button>
-                    <button class="btn-danger" style="width:auto" onclick="deleteExam('${e.id}')">Delete</button>
+                <div style="display:flex; gap:8px">
+                    <button class="btn-outline" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Close':'Open'}</button>
+                    <button class="btn-danger" onclick="deleteExam('${e.id}')">Delete</button>
                 </div>
             </div>
         `).join('');
     }
 
     async function toggleStatus(id, current) {
-        await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'PATCH', { is_open: !current });
-        loadExams();
+        try {
+            await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'PATCH', { is_open: !current });
+            loadExams();
+        } catch (e) { alert(e.message); }
     }
 
     async function deleteExam(id) {
-        if(confirm("Delete this exam and all its results?")) {
-            await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'DELETE');
-            loadExams();
+        if(confirm("Permanently delete this exam and all results?")) {
+            try {
+                await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'DELETE');
+                loadExams(); loadResults();
+            } catch (e) { alert(e.message); }
         }
     }
 
@@ -182,8 +201,13 @@
 
     function renderResults(data) {
         document.getElementById('results-body').innerHTML = data.map(r => `
-            <tr><td>${r.student_name}</td><td>${r.student_class}</td><td style="color:var(--ac)">${r.score}/${r.total}</td>
-            <td>Attempt #${r.attempt_number || 1}</td><td>${new Date(r.created_at).toLocaleDateString()}</td></tr>
+            <tr>
+                <td>${r.student_name}</td>
+                <td>${r.student_class}</td>
+                <td style="color:var(--ac)">${r.score}/${r.total}</td>
+                <td>Attempt #${r.attempt_number || 1}</td>
+                <td>${new Date(r.created_at).toLocaleDateString()}</td>
+            </tr>
         `).join('');
     }
 
@@ -193,10 +217,11 @@
     }
 
     function exportResults() {
-        let csv = "Name,Class,Score,Total,Attempt,Date\n" + allResults.map(r => `${r.student_name},${r.student_class},${r.score},${r.total},${r.attempt_number},${r.created_at}`).join("\n");
+        let csv = "Name,Class,Score,Total,Attempt,Date\n" + 
+            allResults.map(r => `${r.student_name},${r.student_class},${r.score},${r.total},${r.attempt_number},${r.created_at}`).join("\n");
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'results.csv'; a.click();
+        const a = document.createElement('a'); a.href = url; a.download = 'cbt_results.csv'; a.click();
     }
 </script>
 </body>
