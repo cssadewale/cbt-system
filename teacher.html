@@ -1,198 +1,96 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CBT Pro | Administrator</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Teacher</title>
 <style>
-:root { --bg:#09090b; --surface:#18181b; --primary:#10b981; --border:#27272a; --text:#f4f4f5; --text-muted:#a1a1aa; }
-body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); padding:40px; }
-.card { background:var(--surface); padding:25px; border-radius:16px; margin-bottom:20px; border:1px solid var(--border);} 
-input,select { width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid var(--border); background:#000; color:#fff; }
-button { padding:14px; background:var(--primary); border:none; border-radius:10px; font-weight:700; cursor:pointer; }
-.grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
-.small-btn { padding:6px 10px; margin-left:5px; }
+body{font-family:sans-serif;background:#111;color:#fff}
+.card{background:#222;padding:20px;margin-bottom:20px}
 </style>
 </head>
-<body><div class="card">
-<h2>Create Exam</h2>
-<div class="grid">
-<input id="sub" placeholder="Subject">
-<input id="dur" type="number" placeholder="Duration (mins)">
-</div>
-<div class="grid">
-<select id="limit">
-<option value="1">1 Attempt</option>
-<option value="2">2 Attempts</option>
-<option value="999">Unlimited</option>
-</select>
-<input id="count" type="number" placeholder="Question Count (0 = all)">
-</div>
-<input id="pin" placeholder="Optional Exam PIN">
-<input type="file" id="csv" accept=".csv">
-<button onclick="createExam()" id="publish-btn">Publish Exam</button>
-</div><div class="card">
-<h2>Exams</h2>
-<div id="exam-list"></div>
-</div><div class="card">
-<h2>Results</h2>
-<button onclick="exportCSV()">Download CSV</button>
-<table border="1" width="100%" style="margin-top:15px">
-<thead><tr><th>Name</th><th>Class</th><th>Score</th><th>Attempts</th><th>Time</th><th>Date</th></tr></thead>
-<tbody id="res"></tbody>
-</table>
-</div><script>
-const SB_URL='https://pstnsaqjshmtintjrnas.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-let pool=[], exams=[], results=[];
 
-// CSV PARSER (ROBUST)
-document.getElementById('csv').addEventListener('change',e=>{
+<body>
+
+<div class="card">
+<h3>Create Exam</h3>
+<input id="sub" placeholder="Subject"><br><br>
+<input id="dur" type="number" placeholder="Duration"><br><br>
+<input id="limit" type="number" placeholder="Attempts"><br><br>
+<input id="csv" type="file"><br><br>
+<button onclick="createExam()">Publish</button>
+</div>
+
+<div class="card">
+<h3>Exams</h3>
+<div id="list"></div>
+</div>
+
+<script>
+const SB_URL='https://pstnsaqjshmtintjrnas.supabase.co';
+const SB_KEY='YOUR_ANON_KEY_HERE';
+
+let pool=[], exams=[];
+
+csv.onchange=e=>{
  const r=new FileReader();
  r.onload=()=>{
-  const lines=r.result.split(/\r?\n/).filter(l=>l.trim());
-  pool=lines.slice(1).map(l=>{
+  const lines=r.result.split('\\n').slice(1);
+  pool=lines.map(l=>{
    const p=l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-   return {
-    q:p[0]?.replace(/^"|"$/g,''),
-    a:p[1], b:p[2], c:p[3], d:p[4],
-    ans:p[5]?.trim().toUpperCase()
-   };
+   return {q:p[0],a:p[1],b:p[2],c:p[3],d:p[4],ans:p[5]};
   });
-  alert(`Loaded ${pool.length} questions`);
  };
  r.readAsText(e.target.files[0]);
-});
+};
 
-// CREATE EXAM (FIXED)
 async function createExam(){
- teacher_id: session.user.id
- const btn=document.getElementById('publish-btn');
- try {
-  if(!pool.length) return alert("Upload CSV first");
+ if(!pool.length) return alert("Upload CSV");
 
-  btn.innerText="Publishing...";
-  btn.disabled=true;
+ const payload={
+  subject:sub.value,
+  duration:parseInt(dur.value),
+  attempt_limit:parseInt(limit.value),
+  code:Math.random().toString(36).substring(2,7),
+  csv_data:JSON.stringify(pool)
+ };
 
-  const payload={
-    subject:sub.value,
-    duration:parseInt(dur.value),
-    attempt_limit:parseInt(limit.value),
-    select_count:parseInt(count.value)||0,
-    pin:pin.value||null,
-    code:Math.random().toString(36).substring(2,7).toUpperCase(),
-    csv_data:JSON.stringify(pool)
-  };
+ const res=await fetch(`${SB_URL}/rest/v1/exams`,{
+  method:'POST',
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
+  body:JSON.stringify(payload)
+ });
 
-  const res=await fetch(`${SB_URL}/rest/v1/exams`,{
-    method:'POST',
-    headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
-    body:JSON.stringify(payload)
-  });
+ const d=await res.json();
+ alert("Code: "+d[0].code);
 
-  if(!res.ok){
-    const err=await res.text();
-    throw new Error(err);
-  }
-
-  const data=await res.json();
-  alert("✅ Exam Published! Code: "+data[0].code);
-
-  loadExams();
-
- }catch(e){
-  console.error(e);
-  alert("❌ Error: "+e.message);
- }finally{
-  btn.innerText="Publish Exam";
-  btn.disabled=false;
- }
+ load();
 }
 
-// LOAD EXAMS
-async function loadExams(){
- const r=await fetch(`${SB_URL}/rest/v1/exams?select=*`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
+async function load(){
+ const r=await fetch(`${SB_URL}/rest/v1/exams?select=*`,{
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
+ });
  exams=await r.json();
 
- const base=window.location.href.replace(/teacher[^/]*\.html/i,'student.html');
-
- document.getElementById('exam-list').innerHTML=exams.map(e=>`
- <div style="margin-bottom:10px">
- ${e.subject} | Code: ${e.code} | PIN: ${e.pin||'None'}
- <button class="small-btn" onclick="copyLink('${base}?code=${e.code}')">Copy Link</button>
- <button class="small-btn" onclick="toggle('${e.id}',${e.is_open})">${e.is_open?'Close':'Open'}</button>
+ list.innerHTML=exams.map(e=>`
+ <div>
+ ${e.subject} | ${e.code}
+ <button onclick="del('${e.id}')">Delete</button>
  </div>`).join('');
 }
 
-function copyLink(link){
- navigator.clipboard.writeText(link);
- alert("Link copied!");
-}
+async function del(id){
+ if(!confirm("Delete?")) return;
 
-// TOGGLE EXAM
-async function toggle(id,state){
  await fetch(`${SB_URL}/rest/v1/exams?id=eq.${id}`,{
-  method:'PATCH',
-  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
-  body:JSON.stringify({is_open:!state})
+  method:'DELETE',
+  headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
  });
- loadExams();
+
+ load();
 }
 
-async function deleteExam(id){
- if(!confirm("Delete this exam permanently?")) return;
+load();
+</script>
 
- try{
-  const res = await fetch(`${SB_URL}/rest/v1/exams?id=eq.${id}`,{
-    method:'DELETE',
-    headers:{
-      apikey:SB_KEY,
-      Authorization:`Bearer ${SB_KEY}`
-    }
-  });
-
-  if(!res.ok){
-    throw new Error(await res.text());
-  }
-
-  alert("Exam deleted successfully");
-  loadExams();
-  loadResults();
-
- }catch(e){
-  console.error(e);
-  alert("Delete failed: " + e.message);
- }
-}
-
-// LOAD RESULTS
-async function loadResults(){
- const r=await fetch(`${SB_URL}/rest/v1/results?select=*`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
- results=await r.json();
- res.innerHTML=results.map(x=>`
- <tr>
- <td>${x.student_name}</td>
- <td>${x.student_class}</td>
- <td>${x.score}/${x.total}</td>
- <td>${x.attempt_number}</td>
- <td>${x.time_taken}s</td>
- <td>${new Date(x.created_at).toLocaleDateString()}</td>
- </tr>`).join('');
-}
-
-// EXPORT CSV
-function exportCSV(){
- let csv="name,class,score,total,attempt,time,date\n";
- results.forEach(r=>{
-  csv+=`${r.student_name},${r.student_class},${r.score},${r.total},${r.attempt_number},${r.time_taken},${r.created_at}\n`;
- });
- const a=document.createElement('a');
- a.href=URL.createObjectURL(new Blob([csv]));
- a.download='results.csv';
- a.click();
-}
-
-loadExams();
-loadResults();
-</script></body>
+</body>
 </html>
