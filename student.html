@@ -10,9 +10,9 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .card { background: var(--surface); border: 1px solid var(--border); padding: 40px; border-radius: 20px; width: 100%; max-width: 600px; }
         .hidden { display: none !important; }
-        input { width: 100%; padding: 15px; margin: 10px 0 20px; border-radius: 10px; border: 1px solid var(--border); background: #000; color: #fff; font-size: 16px; }
+        input { width: 100%; padding: 15px; margin: 10px 0 20px; border-radius: 10px; border: 1px solid var(--border); background: #000; color: #fff; }
         button { width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; }
-        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; }
         .opt.selected { border-color: var(--primary); background: rgba(16,185,129,0.1); }
     </style>
 </head>
@@ -20,29 +20,28 @@
 
 <div id="entry-card" class="card">
     <h2 style="text-align:center">Student Portal</h2>
-    <p id="status-msg" style="text-align:center; color:var(--text-muted)">Enter details to begin your assessment.</p>
+    <p id="status-msg" style="text-align:center; color:var(--text-muted)">Verify details to start.</p>
     <input type="text" id="s-name" placeholder="Full Name">
     <input type="text" id="s-class" placeholder="Class (e.g. SSS 1)">
-    <button id="start-btn" onclick="validateAttempt()">Begin Assessment</button>
+    <button id="start-btn" onclick="validateAttempt()">Start Assessment</button>
 </div>
 
 <div id="exam-card" class="card hidden" style="max-width: 800px;">
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:15px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
         <span id="progress-text"></span>
-        <span id="timer" style="color:var(--primary); font-weight:800; font-size:20px;"></span>
+        <span id="timer" style="color:var(--primary); font-weight:800;"></span>
     </div>
-    <div id="q-text" style="font-size:22px; font-weight:600; margin-bottom:30px;"></div>
+    <div id="q-text" style="font-size:22px; margin-bottom:30px;"></div>
     <div id="options-box"></div>
-    <div style="display:flex; gap:12px; margin-top:30px">
+    <div style="display:flex; gap:10px; margin-top:20px">
         <button onclick="prev()" style="background:var(--border); color:#fff; width:100px;">Back</button>
         <button onclick="next()" id="next-btn">Next</button>
     </div>
 </div>
 
 <div id="result-view" class="card hidden" style="max-width: 800px; text-align:center;">
-    <h2>Assessment Submitted</h2>
-    <h1 id="score-text" style="color:var(--primary); font-size:72px; margin:20px 0;"></h1>
-    <p style="color:var(--text-muted)">Your records have been saved successfully.</p>
+    <h2>Results Saved</h2>
+    <h1 id="score-text" style="color:var(--primary); font-size:72px;"></h1>
 </div>
 
 <script>
@@ -54,18 +53,12 @@
     async function init() {
         const code = new URLSearchParams(window.location.search).get('code');
         if(!code) return;
-        try {
-            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { 
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
-            });
-            const data = await res.json();
-            if(data.length) {
-                exam = data[0];
-                let pool = JSON.parse(exam.csv_data);
-                pool.sort(() => Math.random() - 0.5);
-                questions = exam.select_count > 0 ? pool.slice(0, exam.select_count) : pool;
-            }
-        } catch(e) { console.error(e); }
+        const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+        const data = await res.json();
+        if(data.length) {
+            exam = data[0];
+            questions = JSON.parse(exam.csv_data).sort(() => Math.random() - 0.5);
+        }
     }
 
     async function validateAttempt() {
@@ -74,26 +67,19 @@
         if(!n || !c) return alert("Fill in details.");
 
         const btn = document.getElementById('start-btn');
-        btn.innerText = "Syncing..."; btn.disabled = true;
+        btn.innerText = "Connecting..."; btn.disabled = true;
 
         try {
+            // Added headers to solve 406
             const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}`, {
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Accept': 'application/json' }
             });
-            
-            if(!res.ok) throw new Error("Database sync error. Ensure SQL script was run.");
-
             const history = await res.json();
             attemptNum = (history ? history.length : 0) + 1;
-            if(history && history.length >= exam.attempt_limit) {
-                alert("Attempt limit reached.");
-                btn.innerText = "Begin Assessment"; btn.disabled = false;
-                return;
-            }
             startExam();
         } catch(e) { 
-            alert(e.message); 
-            btn.innerText = "Begin Assessment"; btn.disabled = false;
+            alert("Connection Error. Run SQL script!"); 
+            btn.innerText = "Start Assessment"; btn.disabled = false;
         }
     }
 
@@ -113,24 +99,21 @@
     function showQ() {
         const q = questions[current];
         document.getElementById('q-text').innerText = `${current+1}. ${q.q}`;
-        document.getElementById('progress-text').innerText = `QUESTION ${current+1}/${questions.length}`;
+        document.getElementById('progress-text').innerText = `Q ${current+1}/${questions.length}`;
         const box = document.getElementById('options-box'); box.innerHTML = '';
         ['A','B','C','D'].forEach(l => {
-            if(!q[l.toLowerCase()]) return;
             const dv = document.createElement('div');
             dv.className = `opt ${answers[current] === l ? 'selected' : ''}`;
-            dv.innerHTML = `<b>${l}.</b> &nbsp; ${q[l.toLowerCase()]}`;
+            dv.innerHTML = `<b>${l}.</b> ${q[l.toLowerCase()]}`;
             dv.onclick = () => { answers[current] = l; showQ(); };
             box.appendChild(dv);
         });
-        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit" : "Next";
     }
 
     function next() { 
         if(current < questions.length - 1) { current++; showQ(); } 
-        else if(confirm("Submit Exam?")) submitExam(); 
+        else if(confirm("Submit?")) submitExam(); 
     }
-    
     function prev() { if(current > 0) { current--; showQ(); } }
 
     async function submitExam() {
@@ -142,23 +125,21 @@
         document.getElementById('result-view').classList.remove('hidden');
         document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
 
-        try {
-            await fetch(`${SB_URL}/rest/v1/results`, {
-                method: 'POST',
-                headers: { 
-                    'apikey': SB_KEY, 
-                    'Authorization': `Bearer ${SB_KEY}`, 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    exam_id: exam.id, 
-                    student_name: document.getElementById('s-name').value,
-                    student_class: document.getElementById('s-class').value,
-                    score, total: questions.length, attempt_number: attemptNum,
-                    time_taken: (exam.duration * 60) - timeLeft
-                })
-            });
-        } catch(e) { console.error("Final sync failed"); }
+        await fetch(`${SB_URL}/rest/v1/results`, {
+            method: 'POST',
+            headers: { 
+                'apikey': SB_KEY, 
+                'Authorization': `Bearer ${SB_KEY}`, 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                exam_id: exam.id, student_name: document.getElementById('s-name').value,
+                student_class: document.getElementById('s-class').value,
+                score, total: questions.length, attempt_number: attemptNum,
+                time_taken: (exam.duration * 60) - timeLeft
+            })
+        });
     }
     init();
 </script>
