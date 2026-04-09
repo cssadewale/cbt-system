@@ -23,6 +23,7 @@
     <p style="text-align:center; color:var(--text-muted)">Verify details to start.</p>
     <input type="text" id="s-name" placeholder="Full Name">
     <input type="text" id="s-class" placeholder="Class">
+    <input type="text" id="exam-pin" placeholder="Exam PIN (if required)">
     <button id="start-btn" onclick="validateAttempt()">Start Assessment</button>
 </div>
 
@@ -45,110 +46,186 @@
 </div>
 
 <script>
-    const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-    
-    let exam=null, questions=[], current=0, answers={}, timeLeft=0, attemptNum=1, timerObj=null;
+const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
 
-    async function init() {
-        const code = new URLSearchParams(window.location.search).get('code');
-        if(!code) return;
-        const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+let exam=null, questions=[], current=0, answers={}, timeLeft=0, attemptNum=1, timerObj=null;
+let tabSwitchCount = 0;
+
+async function init() {
+    const code = new URLSearchParams(window.location.search).get('code');
+    if(!code) {
+        alert("Invalid exam link.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`, {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+
         const data = await res.json();
-        if(data.length) {
-            exam = data[0];
-            questions = JSON.parse(exam.csv_data).sort(() => Math.random() - 0.5);
-        }
+        if(!data.length) return alert("Exam not found.");
+
+        exam = data[0];
+
+        if(!exam.is_open) return alert("Exam is closed.");
+
+        questions = JSON.parse(exam.csv_data).sort(() => Math.random() - 0.5);
+
+        if(exam.select_count > 0) questions = questions.slice(0, exam.select_count);
+
+    } catch(e) {
+        alert("Connection Error.");
+    }
+}
+
+async function validateAttempt() {
+    const n = document.getElementById('s-name').value.trim();
+    const c = document.getElementById('s-class').value.trim();
+    const pin = document.getElementById('exam-pin').value.trim();
+
+    if(!n || !c) return alert("Fill in details.");
+
+    if(exam.pin && exam.pin !== pin) {
+        return alert("Invalid exam PIN.");
     }
 
-    async function validateAttempt() {
-        const n = document.getElementById('s-name').value.trim();
-        const c = document.getElementById('s-class').value.trim();
-        if(!n || !c) return alert("Fill in details.");
+    const btn = document.getElementById('start-btn');
+    btn.innerText = "Checking...";
+    btn.disabled = true;
 
-        const btn = document.getElementById('start-btn');
-        btn.innerText = "Checking..."; btn.disabled = true;
+    try {
+        const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}&select=*`, {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
 
-        try {
-            // Simplified fetch to avoid 406 error
-            const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}`, {
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-            });
-            const history = await res.json();
-            attemptNum = (history ? history.length : 0) + 1;
-            startExam();
-        } catch(e) { 
-            alert("Connection Error. Please ensure the SQL script was run."); 
-            btn.innerText = "Start Assessment"; btn.disabled = false;
+        const history = await res.json();
+        attemptNum = history.length + 1;
+
+        if(attemptNum > exam.attempt_limit) {
+            alert("Attempt limit exceeded.");
+            btn.innerText = "Start Assessment";
+            btn.disabled = false;
+            return;
         }
-    }
 
-    function startExam() {
-        document.getElementById('entry-card').classList.add('hidden');
-        document.getElementById('exam-card').classList.remove('hidden');
-        timeLeft = exam.duration * 60;
-        timerObj = setInterval(() => {
-            timeLeft--;
-            let m = Math.floor(timeLeft/60), s = timeLeft%60;
-            document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
-            if(timeLeft <= 0) submitExam();
-        }, 1000);
+        startExam();
+
+    } catch(e) {
+        alert("Connection Error.");
+        btn.innerText = "Start Assessment";
+        btn.disabled = false;
+    }
+}
+
+function startExam() {
+    document.getElementById('entry-card').classList.add('hidden');
+    document.getElementById('exam-card').classList.remove('hidden');
+
+    timeLeft = exam.duration * 60;
+
+    timerObj = setInterval(() => {
+        timeLeft--;
+        let m = Math.floor(timeLeft/60), s = timeLeft%60;
+        document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
+
+        if(timeLeft <= 0) submitExam();
+    }, 1000);
+
+    document.addEventListener("visibilitychange", () => {
+        if(document.hidden) {
+            tabSwitchCount++;
+            if(tabSwitchCount >= 2) {
+                alert("Tab switching detected. Exam will be submitted.");
+                submitExam();
+            }
+        }
+    });
+
+    window.onbeforeunload = function() {
+        return "You cannot leave during the exam.";
+    };
+
+    showQ();
+}
+
+function showQ() {
+    const q = questions[current];
+    document.getElementById('q-text').innerText = `${current+1}. ${q.q}`;
+    document.getElementById('progress-text').innerText = `Q ${current+1}/${questions.length}`;
+
+    const box = document.getElementById('options-box');
+    box.innerHTML = '';
+
+    ['A','B','C','D'].forEach(l => {
+        const val = q[l.toLowerCase()];
+        if(!val) return;
+
+        const dv = document.createElement('div');
+        dv.className = `opt ${answers[current] === l ? 'selected' : ''}`;
+        dv.innerHTML = `<b>${l}.</b> ${val}`;
+        dv.onclick = () => { answers[current] = l; showQ(); };
+
+        box.appendChild(dv);
+    });
+}
+
+function next() {
+    if(current < questions.length - 1) {
+        current++;
+        showQ();
+    } else if(confirm("Submit exam?")) {
+        submitExam();
+    }
+}
+
+function prev() {
+    if(current > 0) {
+        current--;
         showQ();
     }
+}
 
-    function showQ() {
-        const q = questions[current];
-        document.getElementById('q-text').innerText = `${current+1}. ${q.q}`;
-        document.getElementById('progress-text').innerText = `Q ${current+1}/${questions.length}`;
-        const box = document.getElementById('options-box'); box.innerHTML = '';
-        ['A','B','C','D'].forEach(l => {
-            const val = q[l.toLowerCase()];
-            if(!val) return;
-            const dv = document.createElement('div');
-            dv.className = `opt ${answers[current] === l ? 'selected' : ''}`;
-            dv.innerHTML = `<b>${l}.</b> ${val}`;
-            dv.onclick = () => { answers[current] = l; showQ(); };
-            box.appendChild(dv);
-        });
-    }
+async function submitExam() {
+    clearInterval(timerObj);
+    window.onbeforeunload = null;
 
-    function next() { 
-        if(current < questions.length - 1) { current++; showQ(); } 
-        else if(confirm("Submit?")) submitExam(); 
-    }
-    
-    function prev() { if(current > 0) { current--; showQ(); } }
+    let score = 0;
+    questions.forEach((q, i) => {
+        if(answers[i] === q.ans) score++;
+    });
 
-    async function submitExam() {
-        clearInterval(timerObj);
-        let score = 0;
-        questions.forEach((q, i) => { if(answers[i] === q.ans) score++; });
-        
-        document.getElementById('exam-card').classList.add('hidden');
-        document.getElementById('result-view').classList.remove('hidden');
-        document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
+    document.getElementById('exam-card').classList.add('hidden');
+    document.getElementById('result-view').classList.remove('hidden');
+    document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
 
-        // Raw POST request to avoid policy/406 issues
+    try {
         await fetch(`${SB_URL}/rest/v1/results`, {
             method: 'POST',
-            headers: { 
-                'apikey': SB_KEY, 
-                'Authorization': `Bearer ${SB_KEY}`, 
+            headers: {
+                'apikey': SB_KEY,
+                'Authorization': `Bearer ${SB_KEY}`,
                 'Content-Type': 'application/json',
-                'Prefer': 'return=minimal' 
+                'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
-                exam_id: exam.id, 
+                exam_id: exam.id,
                 student_name: document.getElementById('s-name').value,
                 student_class: document.getElementById('s-class').value,
-                score: score, 
-                total: questions.length, 
+                score: score,
+                total: questions.length,
                 attempt_number: attemptNum,
                 time_taken: (exam.duration * 60) - timeLeft
             })
         });
+    } catch(e) {
+        console.error(e);
     }
-    init();
+}
+
+init();
 </script>
+
 </body>
 </html>
