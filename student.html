@@ -55,20 +55,20 @@
 
 <div id="entry-card" class="card">
     <h2 id="sub-title">Student Portal</h2>
-    <p class="subtitle" id="status-msg">Enter your credentials to access the assessment.</p>
+    <p class="subtitle" id="status-msg">Enter your details to begin the examination.</p>
     
     <label>Candidate Full Name</label>
     <input type="text" id="s-name" placeholder="e.g. John Doe">
     
-    <label>Class / Cohort Level</label>
-    <input type="text" id="s-class" placeholder="e.g. SSS 1 Science">
+    <label>Class / Level</label>
+    <input type="text" id="s-class" placeholder="e.g. SSS 1">
     
     <button id="start-btn" onclick="validateAttempt()">Begin Assessment</button>
 </div>
 
 <div id="exam-card" class="card hidden" style="max-width: 800px;">
     <div class="header-bar">
-        <div><span style="color:var(--text-muted); font-size:14px; font-weight:600" id="progress-text">Question 1 of 10</span></div>
+        <div><span style="color:var(--text-muted); font-size:14px; font-weight:600" id="progress-text">Question 1</span></div>
         <div class="timer-box" id="timer">00:00</div>
     </div>
     
@@ -86,7 +86,7 @@
 
 <div id="result-view" class="card hidden" style="max-width: 800px;">
     <h2>Assessment Complete</h2>
-    <p class="subtitle">Your results have been securely submitted to your instructor.</p>
+    <p class="subtitle">Your performance summary is shown below.</p>
     
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:16px; padding:40px; text-align:center; margin:30px 0;">
         <div style="font-size:16px; color:var(--text-muted); font-weight:600; text-transform:uppercase">Final Score</div>
@@ -94,16 +94,16 @@
         <div id="percentage-text" style="font-size:18px; color:var(--text-muted); margin-top:10px"></div>
     </div>
     
-    <h3 style="margin-bottom: 20px;">Detailed Review</h3>
+    <h3 style="margin-bottom: 20px;">Review Answers</h3>
     <div id="review-list"></div>
 </div>
 
 <script>
-    // Configuration
+    // Supabase Configuration
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
     
-    // Global Variables (Explicitly Declared)
+    // Global State
     let exam = null;
     let questions = [];
     let current = 0;
@@ -112,18 +112,18 @@
     let attemptNum = 1; 
     let examInterval = null;
 
-    // Detect Tab Switching
+    // Monitor tab focus
     document.addEventListener("visibilitychange", () => {
         if (document.hidden && exam && !document.getElementById('exam-card').classList.contains('hidden')) {
-            alert("⚠️ SYSTEM ALERT: Leaving the testing window is monitored and logged.");
+            console.warn("User switched tabs.");
         }
     });
 
-    // Initialize Exam Data from URL
     async function init() {
-        const code = new URLSearchParams(window.location.search).get('code');
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
         if(!code) {
-            document.getElementById('status-msg').innerHTML = "No exam code provided in URL.";
+            document.getElementById('status-msg').innerHTML = "<span style='color:var(--danger)'>Error: No exam code found in URL.</span>";
             return;
         }
         
@@ -133,74 +133,59 @@
             });
             const data = await res.json();
             
-            if (!data || !data.length || String(data[0].is_open) === "false") {
-                document.getElementById('status-msg').innerHTML = "<span style='color:#ef4444'>Access Denied: Exam is currently closed or invalid.</span>";
+            if (!data || data.length === 0 || String(data[0].is_open) === "false") {
+                document.getElementById('status-msg').innerHTML = "<span style='color:var(--danger)'>Access Denied: This exam is closed or the code is incorrect.</span>";
                 document.getElementById('start-btn').disabled = true;
-                document.getElementById('start-btn').style.opacity = '0.5';
                 return;
             }
 
             exam = data[0];
             document.getElementById('sub-title').innerText = exam.subject;
             
-            // Parse and Randomize Questions
-            let fullPool = JSON.parse(exam.csv_data);
-            fullPool.sort(() => Math.random() - 0.5); 
-            questions = exam.select_count > 0 ? fullPool.slice(0, exam.select_count) : fullPool;
+            // Randomize and limit questions
+            let pool = JSON.parse(exam.csv_data);
+            pool.sort(() => Math.random() - 0.5); 
+            questions = exam.select_count > 0 ? pool.slice(0, exam.select_count) : pool;
             
         } catch(e) { 
-            console.error(e);
-            document.getElementById('status-msg').innerText = "Network Error. Please refresh the page."; 
+            document.getElementById('status-msg').innerText = "Connection failed. Please check your internet."; 
         }
     }
 
-    // Validate Student and Check Attempt Limits
     async function validateAttempt() {
         const name = document.getElementById('s-name').value.trim();
         const sClass = document.getElementById('s-class').value.trim();
         
-        if (!name || !sClass) {
-            return alert("Please fill in both your Name and Class.");
-        }
+        if (!name || !sClass) return alert("Please enter your name and class.");
 
         const btn = document.getElementById('start-btn');
-        btn.innerText = "Verifying..."; 
-        btn.disabled = true;
+        btn.innerText = "Connecting..."; btn.disabled = true;
 
         try {
-            // Check existing results for this student
+            // Check for previous attempts
             const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(name)}&student_class=eq.${encodeURIComponent(sClass)}&exam_id=eq.${exam.id}`, {
-                headers: { 
-                    'apikey': SB_KEY, 
-                    'Authorization': `Bearer ${SB_KEY}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
             });
 
             if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.message || "Database connection error");
+                const err = await res.json();
+                throw new Error(err.message || "Permission Denied");
             }
 
             const history = await res.json();
-            
-            // Calculate attempt number
-            attemptNum = (Array.isArray(history) ? history.length : 0) + 1;
+            attemptNum = (history ? history.length : 0) + 1;
 
-            if (Array.isArray(history) && history.length >= exam.attempt_limit) {
-                alert(`Access Denied: You have already used all ${exam.attempt_limit} allowed attempt(s).`);
-                btn.innerText = "Begin Assessment"; 
-                btn.disabled = false;
+            if (history && history.length >= exam.attempt_limit) {
+                alert(`Limit Reached: You have already completed the maximum of ${exam.attempt_limit} attempts.`);
+                btn.innerText = "Begin Assessment"; btn.disabled = false;
                 return;
             }
             
             startExam();
-            
         } catch(e) { 
-            console.error("Validation Error:", e);
-            alert("Verification Failed: Ensure you have applied the SQL RLS policies in Supabase and your internet is connected."); 
-            btn.innerText = "Begin Assessment"; 
-            btn.disabled = false; 
+            console.error(e);
+            alert("SYSTEM ERROR: " + e.message + "\n\n1. Ensure you ran the SQL policies in Supabase.\n2. Ensure the 'results' table exists."); 
+            btn.innerText = "Begin Assessment"; btn.disabled = false; 
         }
     }
 
@@ -212,7 +197,7 @@
         examInterval = setInterval(() => {
             timeLeft--;
             let m = Math.floor(timeLeft/60), s = timeLeft%60;
-            document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
+            document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;
             if(timeLeft <= 0) submitExam();
         }, 1000);
         showQ();
@@ -227,84 +212,66 @@
         const box = document.getElementById('options-box'); 
         box.innerHTML = '';
         
-        ['A','B','C','D'].forEach(l => {
-            if(!q[l.toLowerCase()]) return;
+        ['A','B','C','D'].forEach(label => {
+            if(!q[label.toLowerCase()]) return;
             const btn = document.createElement('div');
-            btn.className = `opt ${answers[current] === l ? 'selected' : ''}`;
-            btn.innerHTML = `<span style="font-weight:700; color:var(--text-muted); margin-right:15px">${l}</span> ${q[l.toLowerCase()]}`;
-            btn.onclick = () => { answers[current] = l; showQ(); };
+            btn.className = `opt ${answers[current] === label ? 'selected' : ''}`;
+            btn.innerHTML = `<span style="font-weight:700; color:var(--text-muted); margin-right:15px">${label}</span> ${q[label.toLowerCase()]}`;
+            btn.onclick = () => { answers[current] = label; showQ(); };
             box.appendChild(btn);
         });
         
-        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Assessment ✓" : "Next Question →";
+        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Finish & Submit ✓" : "Next Question →";
     }
 
-    function clearSelection() { 
-        delete answers[current]; 
-        showQ(); 
-    }
+    function clearSelection() { delete answers[current]; showQ(); }
     
     function next() { 
         if (current < questions.length - 1) { 
-            current++; 
-            showQ(); 
-        } else if(confirm("Are you sure you want to submit your final answers?")) {
+            current++; showQ(); 
+        } else if(confirm("Submit your answers now?")) {
             submitExam(); 
         }
     }
     
-    function prev() { 
-        if (current > 0) { 
-            current--; 
-            showQ(); 
-        } 
-    }
+    function prev() { if (current > 0) { current--; showQ(); } }
 
     async function submitExam() {
-        if (examInterval) clearInterval(examInterval);
+        if(examInterval) clearInterval(examInterval);
         
-        const mainCard = document.getElementById('exam-card');
-        mainCard.innerHTML = `<div style="text-align:center; padding:50px"><h2>Submitting Results...</h2></div>`;
+        const main = document.getElementById('exam-card');
+        main.innerHTML = `<div style="text-align:center; padding:50px"><h2>Finalizing...</h2></div>`;
         
         let score = 0;
         questions.forEach((q, i) => { if(answers[i] === q.ans) score++; });
-        const timeTaken = (exam.duration * 60) - timeLeft;
+        const timeSpent = (exam.duration * 60) - timeLeft;
         
-        mainCard.classList.add('hidden');
+        main.classList.add('hidden');
         document.getElementById('result-view').classList.remove('hidden');
         document.getElementById('score-text').innerText = `${score}/${questions.length}`;
-        document.getElementById('percentage-text').innerText = `${Math.round((score/questions.length)*100)}% Accuracy`;
+        document.getElementById('percentage-text').innerText = `${Math.round((score/questions.length)*100)}% Score`;
 
-        // Render Review
+        // Render Review View
         document.getElementById('review-list').innerHTML = questions.map((q, i) => {
-            const hasAnswered = answers[i] !== undefined;
             const isCorrect = answers[i] === q.ans;
-            
-            let tagClass = 'tag-skip', tagText = '— SKIPPED';
-            if (hasAnswered) {
-                tagClass = isCorrect ? 'tag-correct' : 'tag-wrong';
-                tagText = isCorrect ? '✓ CORRECT' : '✕ INCORRECT';
-            }
+            const tagClass = !answers[i] ? 'tag-skip' : (isCorrect ? 'tag-correct' : 'tag-wrong');
+            const tagText = !answers[i] ? '— SKIPPED' : (isCorrect ? '✓ CORRECT' : '✕ INCORRECT');
 
             return `
             <div class="review-card">
                 <div class="review-tag ${tagClass}">${tagText}</div>
                 <div style="font-weight:600; font-size:16px; margin-bottom:12px">${i+1}. ${q.q}</div>
-                <div style="font-size:14px; color:var(--text-muted); margin-bottom:8px">Your Selection: <span style="color:${isCorrect?'var(--primary)':'#ef4444'}; font-weight:700">${answers[i] || 'None'}</span></div>
+                <div style="font-size:14px; color:var(--text-muted); margin-bottom:8px">Your Answer: <span style="color:${isCorrect?'var(--primary)':'var(--danger)'}; font-weight:700">${answers[i] || 'None'}</span></div>
                 ${!isCorrect ? `<div style="font-size:14px; color:var(--text-muted)">Correct Answer: <span style="color:var(--primary); font-weight:700">${q.ans}</span></div>` : ''}
-                <div class="exp-box"><strong>Explanation:</strong><br>${q.exp || 'No explanation provided by instructor.'}</div>
+                <div class="exp-box"><strong>Working/Explanation:</strong><br>${q.exp || 'N/A'}</div>
             </div>`;
         }).join('');
 
-        // Save to Database
+        // Upload results to database
         try {
             await fetch(`${SB_URL}/rest/v1/results`, {
                 method: 'POST',
-                headers: { 
-                    'apikey': SB_KEY, 
-                    'Authorization': `Bearer ${SB_KEY}`, 
-                    'Content-Type': 'application/json' 
-                },
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     exam_id: exam.id, 
                     student_name: document.getElementById('s-name').value,
@@ -312,15 +279,12 @@
                     score: score, 
                     total: questions.length, 
                     attempt_number: attemptNum,
-                    time_taken: timeTaken
+                    time_taken: timeSpent
                 })
             });
-        } catch(e) { 
-            console.error("Submission Error:", e); 
-        }
+        } catch(e) { console.error("Could not save results."); }
     }
 
-    // Run on Load
     init();
 </script>
 </body>
