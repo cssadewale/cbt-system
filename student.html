@@ -1,94 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>CBT Exam Center</title>
+    <meta charset="UTF-8"><title>CBT Center — Examination</title>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --bg:#0d1117; --sf:#161b22; --bd:#2a3442; --ac:#00c896; --tx:#e6edf3; }
         body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--tx); display: flex; justify-content: center; padding: 20px; }
-        .card { background: var(--sf); border: 1px solid var(--bd); padding: 30px; border-radius: 12px; width: 100%; max-width: 600px; }
+        .card { background: var(--sf); border: 1px solid var(--bd); padding: 30px; border-radius: 12px; width: 100%; max-width: 650px; }
         .hidden { display: none; }
-        .opt-btn { width: 100%; text-align: left; padding: 15px; background: #1e2530; border: 1px solid var(--bd); color: white; margin: 8px 0; border-radius: 8px; cursor: pointer; }
-        .opt-btn:hover { border-color: var(--ac); }
-        .flagged { border: 1px solid #f0a500 !important; color: #f0a500; }
-        .review-item { border-bottom: 1px solid var(--bd); padding: 15px 0; }
-        .correct { color: var(--ac); font-weight: bold; }
-        #warning-msg { color: #ff4d4d; font-weight: bold; text-align: center; margin: 10px 0; }
+        .opt { width: 100%; text-align: left; padding: 15px; background: #1e2530; border: 1px solid var(--bd); color: white; margin: 8px 0; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .opt:hover { border-color: var(--ac); background: #1c2e2a; }
+        .correct { color: var(--ac); font-weight: bold; padding: 10px; background: #00c89611; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div id="entry-card" class="card">
-    <h2 id="sub-title">CBT Center</h2>
-    <div id="warning-msg"></div>
+    <h2 id="sub-title">Loading Exam...</h2>
+    <div id="status-msg" style="margin-bottom:15px; font-size:14px; color:var(--warn)"></div>
     <input type="text" id="s-name" placeholder="Full Name" style="width:100%; padding:12px; margin:10px 0; border-radius:8px; background:#1e2530; color:white; border:1px solid var(--bd)">
-    <input type="text" id="s-class" placeholder="Class" style="width:100%; padding:12px; margin:10px 0; border-radius:8px; background:#1e2530; color:white; border:1px solid var(--bd)">
-    <button onclick="startExam()" style="width:100%; padding:12px; background:var(--ac); border:none; border-radius:8px; font-weight:bold; cursor:pointer">Start Examination</button>
+    <input type="text" id="s-class" placeholder="Class (e.g. SSS3)" style="width:100%; padding:12px; margin:10px 0; border-radius:8px; background:#1e2530; color:white; border:1px solid var(--bd)">
+    <button id="start-btn" onclick="checkAndStart()" style="width:100%; padding:12px; background:var(--ac); border:none; border-radius:8px; font-weight:bold; cursor:pointer">Begin Examination</button>
 </div>
 
 <div id="exam-card" class="card hidden">
     <div style="display:flex; justify-content:space-between; margin-bottom:20px">
-        <span id="timer" style="color:var(--ac); font-weight:bold">00:00</span>
-        <button onclick="flagQuestion()" style="width:auto; padding:5px 10px; font-size:12px; background:transparent; color:#f0a500; border:1px solid #f0a500; border-radius:5px">🚩 Flag for Review</button>
+        <span id="timer" style="color:var(--ac); font-weight:bold; font-size:20px">00:00</span>
+        <span id="progress"></span>
     </div>
-    <h3 id="q-text" style="margin-bottom:20px"></h3>
+    <h3 id="q-text" style="margin-bottom:25px"></h3>
     <div id="options-box"></div>
-    <div style="display:flex; gap:10px; margin-top:20px">
-        <button onclick="prev()" id="prev-btn" style="background:#2a3442; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer">Previous</button>
-        <button onclick="next()" id="next-btn" style="flex-grow:1; background:var(--ac); color:var(--bg); font-weight:bold; border:none; border-radius:5px; cursor:pointer">Next Question</button>
+    <div style="display:flex; gap:10px; margin-top:30px">
+        <button onclick="prev()" style="background:#2a3442; color:white; border:none; padding:12px 20px; border-radius:8px">Back</button>
+        <button onclick="next()" id="next-btn" style="flex-grow:1; background:var(--ac); color:var(--bg); font-weight:bold; border:none; border-radius:8px">Next Question</button>
     </div>
 </div>
 
 <div id="result-view" class="card hidden">
-    <h2 style="text-align:center">Exam Summary</h2>
-    <h1 id="score-text" style="text-align:center; color:var(--ac); font-size:48px; margin:10px 0">0/0</h1>
-    <div id="explanations-list"></div>
+    <h2 style="text-align:center">Submission Successful</h2>
+    <h1 id="score-text" style="text-align:center; color:var(--ac); font-size:60px; margin:20px 0">0/0</h1>
+    <div id="review-list"></div>
 </div>
 
 <script>
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-    let exam = null, questions = [], current = 0, answers = {}, flags = {}, timeLeft = 0;
+    let exam = null, questions = [], current = 0, answers = {}, timeLeft = 0, attemptCount = 0;
 
-    // 1. Anti-Tab Protection
+    // Anti-Cheat: Tab Protection
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            document.getElementById('warning-msg').innerText = "⚠️ WARNING: Tab switching detected. This incident has been logged.";
-            alert("Warning: You left the exam page. This has been reported to the tutor.");
-        }
+        if (document.hidden && exam) alert("Security Alert: Tab switching is prohibited. This has been logged.");
     });
 
     async function init() {
         const code = new URLSearchParams(window.location.search).get('code');
         const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
         const data = await res.json();
-        if (data.length) {
-            exam = data[0];
-            questions = JSON.parse(exam.csv_data);
-            // 2. Question Shuffling
-            questions.sort(() => Math.random() - 0.5);
-            document.getElementById('sub-title').innerText = exam.subject;
-            
-            // 3. Auto-Save Recovery
-            if(localStorage.getItem('cbt_draft_'+exam.code)) {
-                const draft = JSON.parse(localStorage.getItem('cbt_draft_'+exam.code));
-                document.getElementById('s-name').value = draft.name;
-                document.getElementById('s-class').value = draft.class;
-                answers = draft.answers;
-            }
+        
+        if (!data.length || !data[0].is_open) {
+            document.getElementById('status-msg').innerText = "This examination is currently CLOSED or does not exist.";
+            document.getElementById('start-btn').disabled = true;
+            return;
         }
+
+        exam = data[0];
+        document.getElementById('sub-title').innerText = exam.subject;
+        
+        // 1. Question Shuffling & Selection (e.g. 50 from 100)
+        let pool = JSON.parse(exam.csv_data);
+        pool.sort(() => Math.random() - 0.5); // Shuffle
+        questions = exam.select_count > 0 ? pool.slice(0, exam.select_count) : pool;
     }
 
-    function startExam() {
+    async function checkAndStart() {
+        const name = document.getElementById('s-name').value;
+        const sClass = document.getElementById('s-class').value;
+        if (!name || !sClass) return alert("Enter your details.");
+
+        // Check attempt history
+        const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${name}&student_class=eq.${sClass}&exam_id=eq.${exam.id}`, {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+        const history = await res.json();
+        attemptCount = history.length + 1;
+
+        if (history.length >= exam.attempt_limit) {
+            return alert(`Limit Reached: You have already attempted this exam ${history.length} time(s).`);
+        }
+
         document.getElementById('entry-card').classList.add('hidden');
         document.getElementById('exam-card').classList.remove('hidden');
+        
         timeLeft = exam.duration * 60;
-        setInterval(() => {
+        const timerInt = setInterval(() => {
             timeLeft--;
-            const m = Math.floor(timeLeft/60), s = timeLeft%60;
+            let m = Math.floor(timeLeft/60), s = timeLeft%60;
             document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
-            if(timeLeft <= 0) submitExam();
+            if(timeLeft <= 0) { clearInterval(timerInt); submitExam(); }
         }, 1000);
         showQ();
     }
@@ -96,34 +104,22 @@
     function showQ() {
         const q = questions[current];
         document.getElementById('q-text').innerText = `${current + 1}. ${q.q}`;
-        const box = document.getElementById('options-box');
-        box.innerHTML = '';
-        ['a','b','c','d'].forEach(l => {
+        document.getElementById('progress').innerText = `Question ${current+1} of ${questions.length}`;
+        const box = document.getElementById('options-box'); box.innerHTML = '';
+        
+        ['A','B','C','D'].forEach(l => {
             const b = document.createElement('button');
-            b.className = 'opt-btn' + (answers[current] === l.toUpperCase() ? ' flagged' : '');
-            b.innerText = `${l.toUpperCase()}. ${q[l.toLowerCase()]}`;
-            b.onclick = () => { answers[current] = l.toUpperCase(); saveLocal(); showQ(); };
+            b.className = 'opt';
+            if(answers[current] === l) b.style.borderColor = 'var(--ac)';
+            b.innerText = `${l}. ${q[l.toLowerCase()]}`;
+            b.onclick = () => { answers[current] = l; showQ(); };
             box.appendChild(b);
         });
-        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Finish Exam" : "Next Question";
+        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Final Answers" : "Next Question";
     }
 
-    function saveLocal() {
-        localStorage.setItem('cbt_draft_'+exam.code, JSON.stringify({
-            name: document.getElementById('s-name').value,
-            class: document.getElementById('s-class').value,
-            answers: answers
-        }));
-    }
-
-    function next() {
-        if (current < questions.length - 1) { current++; showQ(); }
-        else submitExam();
-    }
-    
+    function next() { if (current < questions.length - 1) { current++; showQ(); } else if(confirm("Submit Exam?")) submitExam(); }
     function prev() { if (current > 0) { current--; showQ(); } }
-    
-    function flagQuestion() { flags[current] = true; alert("Question Flagged for Review"); }
 
     async function submitExam() {
         let score = 0;
@@ -133,13 +129,12 @@
         document.getElementById('result-view').classList.remove('hidden');
         document.getElementById('score-text').innerText = `${score}/${questions.length}`;
 
-        // Show Correct Answers & Explanations
-        document.getElementById('explanations-list').innerHTML = questions.map((q, i) => `
-            <div class="review-item">
-                <p><strong>${i+1}. ${q.q}</strong></p>
-                <p>Your Answer: <span style="color:${answers[i]===q.ans?'var(--ac)':'#ff4d4d'}">${answers[i] || 'None'}</span></p>
-                <p class="correct">Correct Answer: ${q.ans}</p>
-                <p style="font-size:13px; color:var(--mu)">Working: ${q.exp || 'N/A'}</p>
+        // Show Review with Explanations
+        document.getElementById('review-list').innerHTML = questions.map((q, i) => `
+            <div style="border-bottom:1px solid var(--bd); padding:15px 0">
+                <p><strong>Q${i+1}: ${q.q}</strong></p>
+                <p>Your: <span style="color:${answers[i]===q.ans?'var(--ac)':'#ff4d4d'}">${answers[i] || 'Skipped'}</span> | Correct: <span class="correct">${q.ans}</span></p>
+                <div class="correct" style="font-size:13px; background:#1e2530"><strong>Working:</strong> ${q.exp || 'No explanation provided.'}</div>
             </div>
         `).join('');
 
@@ -150,12 +145,12 @@
                 exam_id: exam.id,
                 student_name: document.getElementById('s-name').value,
                 student_class: document.getElementById('s-class').value,
-                score, total: questions.length, time_taken: (exam.duration*60) - timeLeft
+                score, total: questions.length,
+                time_taken: (exam.duration*60) - timeLeft,
+                attempt_number: attemptCount
             })
         });
-        localStorage.removeItem('cbt_draft_'+exam.code);
     }
-
     init();
 </script>
 </body>
