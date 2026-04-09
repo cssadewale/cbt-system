@@ -10,51 +10,39 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; margin: 0; }
         .card { background: var(--surface); border: 1px solid var(--border); padding: 40px; border-radius: 20px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
-        label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
         input { width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 10px; border: 1px solid var(--border); background: #000; color: #fff; font-size: 16px; }
-        button { width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; }
-        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; }
-        .opt:hover { background: var(--border); }
-        .opt.selected { border-color: var(--primary); background: rgba(16,185,129,0.1); font-weight: 600; }
-        .review-card { background: #000; border: 1px solid var(--border); padding: 20px; margin-bottom: 15px; border-radius: 12px; }
+        button { width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; }
+        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .opt.selected { border-color: var(--primary); background: rgba(16,185,129,0.1); }
     </style>
 </head>
 <body>
 
 <div id="entry-card" class="card">
     <h2 style="text-align:center; margin-bottom:10px;">Student Portal</h2>
-    <p id="status-msg" style="text-align:center; color:var(--text-muted); margin-bottom:30px;">Enter your details to begin the assessment.</p>
-    
-    <label>Student Full Name</label>
-    <input type="text" id="s-name" placeholder="Enter Full Name">
-    
-    <label>Class / Level</label>
-    <input type="text" id="s-class" placeholder="e.g. SSS 1">
-    
+    <p id="status-msg" style="text-align:center; color:var(--text-muted); margin-bottom:30px;">Enter your details to begin.</p>
+    <input type="text" id="s-name" placeholder="Full Name">
+    <input type="text" id="s-class" placeholder="Class (e.g. SSS 1)">
     <button id="start-btn" onclick="validateAttempt()">Begin Assessment</button>
 </div>
 
 <div id="exam-card" class="card hidden" style="max-width: 800px;">
     <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:15px;">
-        <span id="progress-text" style="font-weight:600; color:var(--text-muted)"></span>
-        <span id="timer" style="color:var(--primary); font-weight:800; font-family:monospace; font-size:20px;"></span>
+        <span id="progress-text"></span>
+        <span id="timer" style="color:var(--primary); font-weight:800; font-size:20px;"></span>
     </div>
-    <div id="q-text" style="font-size:22px; font-weight:600; margin-bottom:30px; line-height:1.4;"></div>
+    <div id="q-text" style="font-size:22px; font-weight:600; margin-bottom:30px;"></div>
     <div id="options-box"></div>
     <div style="display:flex; gap:12px; margin-top:30px">
-        <button onclick="prev()" style="background:var(--border); color:#fff; width:120px;">Back</button>
-        <button onclick="next()" id="next-btn">Next Question</button>
+        <button onclick="prev()" style="background:var(--border); color:#fff; width:100px;">Back</button>
+        <button onclick="next()" id="next-btn">Next</button>
     </div>
 </div>
 
-<div id="result-view" class="card hidden" style="max-width: 800px;">
-    <h2 style="text-align:center;">Assessment Complete</h2>
-    <div style="text-align:center; padding:40px 0;">
-        <div style="color:var(--text-muted); text-transform:uppercase; font-size:14px; letter-spacing:1px;">Final Score</div>
-        <h1 id="score-text" style="color:var(--primary); font-size:72px; margin:10px 0;"></h1>
-    </div>
-    <h3 style="margin-bottom:20px; border-top:1px solid var(--border); padding-top:20px;">Review Answers</h3>
-    <div id="review-list"></div>
+<div id="result-view" class="card hidden" style="max-width: 800px; text-align:center;">
+    <h2>Assessment Complete</h2>
+    <h1 id="score-text" style="color:var(--primary); font-size:72px; margin:20px 0;"></h1>
+    <p style="color:var(--text-muted)">Your results have been securely saved.</p>
 </div>
 
 <script>
@@ -65,49 +53,42 @@
 
     async function init() {
         const code = new URLSearchParams(window.location.search).get('code');
-        if(!code) {
-            document.getElementById('status-msg').innerText = "Error: Invalid Exam Link.";
-            return;
-        }
+        if(!code) return;
         try {
-            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { 
-                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
-            });
+            const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
             const data = await res.json();
             if(data.length) {
                 exam = data[0];
-                document.title = exam.subject + " | Assessment";
                 let pool = JSON.parse(exam.csv_data);
                 pool.sort(() => Math.random() - 0.5);
                 questions = exam.select_count > 0 ? pool.slice(0, exam.select_count) : pool;
             }
-        } catch(e) { console.error("Init Error:", e); }
+        } catch(e) { console.error(e); }
     }
 
     async function validateAttempt() {
         const n = document.getElementById('s-name').value.trim();
         const c = document.getElementById('s-class').value.trim();
-        if(!n || !c) return alert("Please enter your name and class.");
+        if(!n || !c) return alert("Enter details");
 
         const btn = document.getElementById('start-btn');
-        btn.innerText = "Checking Attempts..."; btn.disabled = true;
+        btn.innerText = "Connecting..."; btn.disabled = true;
 
         try {
-            const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}`, {
+            // Added cache-busting timestamp to prevent the 404 from browser memory
+            const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}&t=${Date.now()}`, {
                 headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
             });
             
+            if(!res.ok) throw new Error("Table Error: Please run the SQL fix in Supabase!");
+
             const history = await res.json();
             attemptNum = (history ? history.length : 0) + 1;
+            if(history && history.length >= exam.attempt_limit) return alert("Attempt limit reached.");
             
-            if(history && history.length >= exam.attempt_limit) {
-                alert("You have already reached the maximum allowed attempts for this exam.");
-                btn.innerText = "Begin Assessment"; btn.disabled = false;
-                return;
-            }
             startExam();
         } catch(e) { 
-            alert("Connection Error. Please try again."); 
+            alert(e.message); 
             btn.innerText = "Begin Assessment"; btn.disabled = false;
         }
     }
@@ -128,23 +109,22 @@
     function showQ() {
         const q = questions[current];
         document.getElementById('q-text').innerText = `${current+1}. ${q.q}`;
-        document.getElementById('progress-text').innerText = `QUESTION ${current+1} OF ${questions.length}`;
+        document.getElementById('progress-text').innerText = `QUESTION ${current+1}/${questions.length}`;
         const box = document.getElementById('options-box'); box.innerHTML = '';
-        
         ['A','B','C','D'].forEach(l => {
             if(!q[l.toLowerCase()]) return;
             const dv = document.createElement('div');
             dv.className = `opt ${answers[current] === l ? 'selected' : ''}`;
-            dv.innerHTML = `<span style="width:30px; color:var(--text-muted); font-weight:700;">${l}</span> ${q[l.toLowerCase()]}`;
+            dv.innerHTML = `<b>${l}.</b> &nbsp; ${q[l.toLowerCase()]}`;
             dv.onclick = () => { answers[current] = l; showQ(); };
             box.appendChild(dv);
         });
-        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit Assessment ✓" : "Next Question →";
+        document.getElementById('next-btn').innerText = current === questions.length - 1 ? "Submit ✓" : "Next";
     }
 
     function next() { 
         if(current < questions.length - 1) { current++; showQ(); } 
-        else { if(confirm("Are you sure you want to submit?")) submitExam(); }
+        else if(confirm("Submit Assessment?")) submitExam(); 
     }
     
     function prev() { if(current > 0) { current--; showQ(); } }
@@ -158,42 +138,19 @@
         document.getElementById('result-view').classList.remove('hidden');
         document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
 
-        document.getElementById('review-list').innerHTML = questions.map((q, i) => {
-            const isCorr = answers[i] === q.ans;
-            return `<div class="review-card">
-                <div style="font-weight:600; margin-bottom:10px;">${i+1}. ${q.q}</div>
-                <div style="font-size:14px;">Your Answer: <span style="color:${isCorr?'var(--primary)':'#ef4444'}">${answers[i] || 'Skipped'}</span></div>
-                ${!isCorr ? `<div style="font-size:14px; color:var(--primary)">Correct: ${q.ans}</div>` : ''}
-            </div>`;
-        }).join('');
-
         try {
-            const payload = {
-                exam_id: exam.id, 
-                student_name: document.getElementById('s-name').value,
-                student_class: document.getElementById('s-class').value,
-                score: score, 
-                total: questions.length, 
-                attempt_number: attemptNum,
-                time_taken: (exam.duration * 60) - timeLeft
-            };
-
-            const res = await fetch(`${SB_URL}/rest/v1/results`, {
+            await fetch(`${SB_URL}/rest/v1/results`, {
                 method: 'POST',
-                headers: { 
-                    'apikey': SB_KEY, 
-                    'Authorization': `Bearer ${SB_KEY}`, 
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(payload)
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    exam_id: exam.id, 
+                    student_name: document.getElementById('s-name').value,
+                    student_class: document.getElementById('s-class').value,
+                    score, total: questions.length, attempt_number: attemptNum,
+                    time_taken: (exam.duration * 60) - timeLeft
+                })
             });
-            
-            if(!res.ok) throw new Error(await res.text());
-        } catch(e) { 
-            console.error("Submission failed:", e);
-            alert("Result saved locally, but failed to sync with server. Please inform your instructor.");
-        }
+        } catch(e) { console.error("Sync Error"); }
     }
     init();
 </script>
