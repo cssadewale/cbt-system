@@ -23,7 +23,6 @@
     <p style="text-align:center; color:var(--text-muted)">Verify details to start.</p>
     <input type="text" id="s-name" placeholder="Full Name">
     <input type="text" id="s-class" placeholder="Class">
-    <input type="text" id="exam-pin" placeholder="Exam PIN (if required)">
     <button id="start-btn" onclick="validateAttempt()">Start Assessment</button>
 </div>
 
@@ -83,12 +82,8 @@ async function init() {
 async function validateAttempt() {
     const n = document.getElementById('s-name').value.trim();
     const c = document.getElementById('s-class').value.trim();
-    const pin = document.getElementById('exam-pin').value.trim();
 
     if(!n || !c) return alert("Fill in details.");
-
-    if(exam.pin && exam.pin !== pin) {
-        return alert("Invalid exam PIN.");
     }
 
     const btn = document.getElementById('start-btn');
