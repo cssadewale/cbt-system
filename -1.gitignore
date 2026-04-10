@@ -1,0 +1,28 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.acode/
+*.swp
+*~
+
+# Secrets — NEVER commit these
+.env
+.env.local
+secrets.js
+*.key
+
+# Personal notes
+notes.txt
+TODO.txt
+scratch.*
+
+# Build artifacts (if any added later)
+dist/
+build/
+node_modules/
+
+# Logs
+*.log
