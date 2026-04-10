@@ -136,7 +136,7 @@
     }
 
     .question-number.answered {
-      border-color: var(--primary);
+      border: 2px solid var(--primary);
       color: var(--primary);
     }
 
@@ -203,6 +203,76 @@
       color: var(--danger);
     }
 
+    #calculator-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #000;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    #calculator-box {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 300px;
+      background: #111;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 15px;
+      z-index: 9999;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    }
+
+    .calc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .calc-header button {
+      background: var(--danger);
+      color: white;
+      padding: 6px 10px;
+    }
+
+    #calc-display {
+      width: 100%;
+      height: 50px;
+      margin-bottom: 10px;
+      text-align: right;
+      font-size: 20px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #000;
+      color: white;
+      padding: 10px;
+    }
+
+    .calc-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .calc-buttons button {
+      background: var(--surface-2);
+      color: white;
+      padding: 12px;
+    }
+
     @media (max-width: 900px) {
       .exam-layout {
         grid-template-columns: 1fr;
@@ -212,353 +282,84 @@
         position: static;
       }
     }
+
+    @media (max-width: 600px) {
+      #calculator-box {
+        width: 90%;
+        right: 5%;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- Keep the rest of your HTML exactly the same up to the closing result-view div -->
 
-<div id="entry-card" class="card" style="max-width:600px;">
-  <h2 style="text-align:center;">Student Portal</h2>
-  <p style="text-align:center;">Verify your details to begin the assessment.</p>
+  <!-- Add this before closing body tag -->
+  <div id="calculator-toggle" onclick="toggleCalculator()">🧮</div>
 
-  <div id="status-message"></div>
-
-  <input type="text" id="s-name" placeholder="Full Name">
-  <input type="text" id="s-class" placeholder="Class">
-  <button id="start-btn" class="primary-btn" onclick="validateAttempt()">Start Assessment</button>
-</div>
-
-<div id="exam-card" class="card hidden">
-  <div class="top-bar">
-    <div>
-      <h2 id="exam-subject"></h2>
-      <p id="progress-text"></p>
-    </div>
-    <div id="timer" style="font-size:24px; font-weight:800; color:var(--primary);"></div>
-  </div>
-
-  <div class="exam-layout">
-    <div class="question-panel">
-      <h3>Questions</h3>
-      <p>Click any number to jump directly to that question.</p>
-      <div class="question-grid" id="question-grid"></div>
+  <div id="calculator-box" class="hidden">
+    <div class="calc-header">
+      <span>Calculator</span>
+      <button onclick="toggleCalculator()">✕</button>
     </div>
 
-    <div>
-      <div id="q-text" style="font-size:22px; margin-bottom:25px;"></div>
-      <div id="options-box"></div>
+    <input type="text" id="calc-display" readonly>
 
-      <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
-        <button class="secondary-btn" onclick="prev()">Back</button>
-        <button class="primary-btn" style="width:auto;" onclick="next()" id="next-btn">Next</button>
-      </div>
+    <div class="calc-buttons">
+      <button onclick="pressCalc('7')">7</button>
+      <button onclick="pressCalc('8')">8</button>
+      <button onclick="pressCalc('9')">9</button>
+      <button onclick="pressCalc('/')">÷</button>
+
+      <button onclick="pressCalc('4')">4</button>
+      <button onclick="pressCalc('5')">5</button>
+      <button onclick="pressCalc('6')">6</button>
+      <button onclick="pressCalc('*')">×</button>
+
+      <button onclick="pressCalc('1')">1</button>
+      <button onclick="pressCalc('2')">2</button>
+      <button onclick="pressCalc('3')">3</button>
+      <button onclick="pressCalc('-')">−</button>
+
+      <button onclick="pressCalc('0')">0</button>
+      <button onclick="pressCalc('.')">.</button>
+      <button onclick="calculateResult()">=</button>
+      <button onclick="pressCalc('+')">+</button>
+
+      <button onclick="pressCalc('(')">(</button>
+      <button onclick="pressCalc(')')">)</button>
+      <button onclick="clearCalc()">C</button>
+      <button onclick="deleteCalc()">⌫</button>
     </div>
   </div>
-</div>
 
-<div id="result-view" class="card hidden">
-  <div style="text-align:center; margin-bottom:30px;">
-    <h2>Assessment Completed</h2>
-    <h1 id="score-text" style="font-size:72px; color:var(--primary);"></h1>
-    <p id="summary-text"></p>
-  </div>
-
-  <h2>Review of Questions</h2>
-  <div id="review-box"></div>
-</div>
-
-<script>
-const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-
-let exam = null;
-let questions = [];
-let current = 0;
-let answers = {};
-let timeLeft = 0;
-let attemptNum = 1;
-let timerObj = null;
-let tabSwitchCount = 0;
-
-function showError(message) {
-  document.getElementById('status-message').innerHTML = `<div style="padding:12px; border-radius:10px; background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.3); margin-bottom:20px;">${message}</div>`;
-}
-
-async function init() {
-  const code = new URLSearchParams(window.location.search).get('code');
-
-  if (!code) {
-    showError('Invalid exam link.');
-    document.getElementById('start-btn').disabled = true;
-    return;
-  }
-
-  try {
-    const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`, {
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`
-      }
-    });
-
-    const data = await res.json();
-
-    if (!data.length) {
-      showError('Exam not found.');
-      document.getElementById('start-btn').disabled = true;
-      return;
+  <script>
+    function toggleCalculator() {
+      document.getElementById('calculator-box').classList.toggle('hidden');
     }
 
-    exam = data[0];
-
-    if (!exam.is_open) {
-      showError('This exam is closed.');
-      document.getElementById('start-btn').disabled = true;
-      return;
+    function pressCalc(value) {
+      document.getElementById('calc-display').value += value;
     }
 
-    questions = JSON.parse(exam.csv_data).sort(() => Math.random() - 0.5);
-
-    if (Number(exam.select_count) > 0) {
-      questions = questions.slice(0, Number(exam.select_count));
+    function clearCalc() {
+      document.getElementById('calc-display').value = '';
     }
 
-  } catch (e) {
-    console.error(e);
-    showError('Connection error.');
-    document.getElementById('start-btn').disabled = true;
-  }
-}
-
-async function validateAttempt() {
-  const n = document.getElementById('s-name').value.trim();
-  const c = document.getElementById('s-class').value.trim();
-
-  if (!n || !c) {
-    alert('Fill in all details.');
-    return;
-  }
-
-  const btn = document.getElementById('start-btn');
-  btn.disabled = true;
-  btn.innerText = 'Checking...';
-
-  try {
-    const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}&select=*`, {
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`
-      }
-    });
-
-    const history = await res.json();
-    attemptNum = history.length + 1;
-
-    if (attemptNum > Number(exam.attempt_limit)) {
-      alert('Attempt limit exceeded.');
-      btn.disabled = false;
-      btn.innerText = 'Start Assessment';
-      return;
+    function deleteCalc() {
+      const display = document.getElementById('calc-display');
+      display.value = display.value.slice(0, -1);
     }
 
-    startExam();
+    function calculateResult() {
+      const display = document.getElementById('calc-display');
 
-  } catch (e) {
-    console.error(e);
-    alert('Could not verify attempt history.');
-    btn.disabled = false;
-    btn.innerText = 'Start Assessment';
-  }
-}
-
-function startExam() {
-  document.getElementById('entry-card').classList.add('hidden');
-  document.getElementById('exam-card').classList.remove('hidden');
-  document.getElementById('exam-subject').innerText = exam.subject;
-
-  timeLeft = Number(exam.duration) * 60;
-
-  timerObj = setInterval(() => {
-    timeLeft--;
-
-    const m = Math.floor(timeLeft / 60);
-    const s = timeLeft % 60;
-
-    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;
-
-    if (timeLeft <= 0) {
-      submitExam();
-    }
-  }, 1000);
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      tabSwitchCount++;
-
-      if (tabSwitchCount >= 2) {
-        alert('Tab switching detected. Exam will be submitted automatically.');
-        submitExam();
+      try {
+        display.value = eval(display.value);
+      } catch {
+        display.value = 'Error';
       }
     }
-  });
-
-  window.onbeforeunload = function() {
-    return 'You cannot leave during the exam.';
-  };
-
-  renderQuestionNumbers();
-  showQ();
-}
-
-function renderQuestionNumbers() {
-  const grid = document.getElementById('question-grid');
-  grid.innerHTML = '';
-
-  questions.forEach((_, index) => {
-    const btn = document.createElement('button');
-    btn.className = 'question-number';
-
-    if (index === current) btn.classList.add('active');
-    if (answers[index]) btn.classList.add('answered');
-
-    btn.innerText = index + 1;
-    btn.onclick = () => {
-      current = index;
-      showQ();
-    };
-
-    grid.appendChild(btn);
-  });
-}
-
-function showQ() {
-  const q = questions[current];
-
-  document.getElementById('q-text').innerText = `${current + 1}. ${q.q}`;
-  document.getElementById('progress-text').innerText = `Question ${current + 1} of ${questions.length}`;
-
-  const box = document.getElementById('options-box');
-  box.innerHTML = '';
-
-  ['A', 'B', 'C', 'D'].forEach(letter => {
-    const value = q[letter.toLowerCase()];
-    if (!value) return;
-
-    const div = document.createElement('div');
-    div.className = `opt ${answers[current] === letter ? 'selected' : ''}`;
-    div.innerHTML = `<strong>${letter}.</strong> ${value}`;
-
-    div.onclick = () => {
-      answers[current] = letter;
-      showQ();
-    };
-
-    box.appendChild(div);
-  });
-
-  document.getElementById('next-btn').innerText = current === questions.length - 1 ? 'Submit Exam' : 'Next';
-  renderQuestionNumbers();
-}
-
-function next() {
-  if (current < questions.length - 1) {
-    current++;
-    showQ();
-  } else {
-    if (confirm('Submit exam now?')) {
-      submitExam();
-    }
-  }
-}
-
-function prev() {
-  if (current > 0) {
-    current--;
-    showQ();
-  }
-}
-
-async function submitExam() {
-  clearInterval(timerObj);
-  window.onbeforeunload = null;
-
-  let score = 0;
-
-  questions.forEach((q, i) => {
-    if (answers[i] === q.ans) {
-      score++;
-    }
-  });
-
-  document.getElementById('exam-card').classList.add('hidden');
-  document.getElementById('result-view').classList.remove('hidden');
-
-  document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
-  document.getElementById('summary-text').innerText = `You answered ${score} correctly and missed ${questions.length - score}.`;
-
-  const reviewBox = document.getElementById('review-box');
-  reviewBox.innerHTML = '';
-
-  questions.forEach((q, i) => {
-    const studentAnswer = answers[i] || 'Not Answered';
-    const correctAnswer = q.ans;
-    const isCorrect = studentAnswer === correctAnswer;
-
-    const review = document.createElement('div');
-    review.className = `review-card ${isCorrect ? 'correct' : 'wrong'}`;
-
-    review.innerHTML = `
-      <div class="tag ${isCorrect ? 'tag-correct' : 'tag-wrong'}">
-        ${isCorrect ? 'Correct' : 'Incorrect'}
-      </div>
-
-      <h3>Question ${i + 1}</h3>
-      <p style="color:#fff; margin-bottom:15px;">${q.q}</p>
-
-      <p><strong>Your Answer:</strong> ${studentAnswer}</p>
-      <p><strong>Correct Answer:</strong> ${correctAnswer}</p>
-
-      <div style="margin-top:10px; padding:12px; background:#18181b; border-radius:10px;">
-        <strong>Correct Option Text:</strong><br>
-        ${q[correctAnswer.toLowerCase()] || 'N/A'}
-      </div>
-
-      ${q.exp ? `
-        <div style="margin-top:15px; padding:12px; background:rgba(16,185,129,0.08); border-radius:10px; border:1px solid rgba(16,185,129,0.15);">
-          <strong>Explanation:</strong><br>
-          ${q.exp}
-        </div>
-      ` : ''}
-    `;
-
-    reviewBox.appendChild(review);
-  });
-
-  try {
-    await fetch(`${SB_URL}/rest/v1/results`, {
-      method: 'POST',
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        exam_id: exam.id,
-        student_name: document.getElementById('s-name').value.trim(),
-        student_class: document.getElementById('s-class').value.trim(),
-        score: score,
-        total: questions.length,
-        attempt_number: attemptNum,
-        time_taken: (Number(exam.duration) * 60) - timeLeft
-      })
-    });
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-init();
-</script>
-
+  </script>
 </body>
-<
+</html>
