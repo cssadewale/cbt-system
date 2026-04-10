@@ -3,25 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <title>Teacher Dashboard</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body { font-family: Arial; margin: 20px; }
     .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
     .hidden { display: none; }
     button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+    input { padding: 6px; width: 250px; }
   </style>
 </head>
 <body>
 
 <h2>Teacher Dashboard</h2>
 
+<!-- LOGIN -->
 <div id="loginBox" class="card">
   <h3>Login</h3>
   <input id="email" placeholder="Email"><br><br>
   <input id="password" type="password" placeholder="Password"><br><br>
+
   <button onclick="login()">Login</button>
+  <button onclick="signup()">Sign Up</button>
 </div>
 
+<!-- DASHBOARD -->
 <div id="dashboard" class="hidden">
 
   <div class="card">
@@ -50,47 +57,145 @@
 
 <script>
 
+/* =========================
+   GLOBAL ERROR HANDLER
+========================= */
+window.onerror = function(message) {
+  alert("JS Error: " + message);
+};
+
+/* =========================
+   SUPABASE INIT (FIXED)
+========================= */
 const SUPABASE_URL = "https://pstnsaqjshmtintjrnas.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 
 /* =========================
-   LOGIN
+   LOADING STATE
 ========================= */
-async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email, password
-  });
-
-  if (error) return alert(error.message);
-
-  currentUser = data.user;
-
-  document.getElementById("loginBox").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-
-  loadExams();
-  loadAnalytics();
-  startLiveMonitoring();
+function setLoading(state) {
+  document.querySelectorAll("button").forEach(btn => btn.disabled = state);
 }
 
 /* =========================
-   LOAD TEACHER EXAMS
+   SIGNUP
+========================= */
+async function signup() {
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!email || !password) {
+    alert("Enter email and password");
+    return;
+  }
+
+  setLoading(true);
+
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password
+  });
+
+  setLoading(false);
+
+  if (error) {
+    alert("Signup error: " + error.message);
+    return;
+  }
+
+  alert("Signup successful. You can now login.");
+
+  if (data.user) {
+    await supabaseClient.from("profiles").insert({
+      id: data.user.id,
+      email: data.user.email,
+      role: "teacher"
+    });
+  }
+}
+
+/* =========================
+   LOGIN (FIXED)
+========================= */
+async function login() {
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!email || !password) {
+    alert("Enter email and password");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      alert("Login failed: " + error.message);
+      setLoading(false);
+      return;
+    }
+
+    currentUser = data.user;
+
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+
+    await loadExams();
+    await loadAnalytics();
+    startLiveMonitoring();
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+
+  setLoading(false);
+}
+
+/* =========================
+   SESSION RESTORE
+========================= */
+async function checkSession() {
+
+  const { data } = await supabaseClient.auth.getSession();
+
+  if (data.session) {
+    currentUser = data.session.user;
+
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+
+    loadExams();
+    loadAnalytics();
+    startLiveMonitoring();
+  }
+}
+
+checkSession();
+
+/* =========================
+   LOAD EXAMS (ROLE SAFE)
 ========================= */
 async function loadExams() {
 
-  const { data: profile } = await supabase
+  const { data: profile } = await supabaseClient
     .from("profiles")
     .select("role")
     .eq("id", currentUser.id)
     .single();
 
-  let query = supabase.from("exams").select("*");
+  let query = supabaseClient.from("exams").select("*");
 
   if (profile.role !== "admin") {
     query = query.eq("created_by", currentUser.id);
@@ -102,38 +207,50 @@ async function loadExams() {
   container.innerHTML = "";
 
   data.forEach(exam => {
+
     const div = document.createElement("div");
+
     div.innerHTML = `
       <b>${exam.title}</b><br>
-      <button onclick="viewResults('${exam.id}')">View Results</button>
-      <button onclick="exportCSV('${exam.id}')">Export CSV</button>
+      <button onclick="viewResults('${exam.id}')">Results</button>
+      <button onclick="exportCSV('${exam.id}')">Export</button>
+      <button onclick="viewCheatLogs('${exam.id}')">Cheat Logs</button>
+      <hr>
     `;
+
     container.appendChild(div);
   });
 }
 
 /* =========================
-   CSV UPLOAD
+   UPLOAD CSV
 ========================= */
 async function uploadCSV() {
+
   const file = document.getElementById("csvFile").files[0];
   const title = document.getElementById("examTitle").value;
 
-  if (!file || !title) return alert("Missing data");
+  if (!file || !title) {
+    alert("Missing file or title");
+    return;
+  }
 
   const text = await file.text();
   const rows = text.split("\n").slice(1);
 
-  const { data: exam } = await supabase
+  const { data: exam } = await supabaseClient
     .from("exams")
     .insert([{ title, created_by: currentUser.id }])
     .select()
     .single();
 
   for (let row of rows) {
+
     const cols = row.split(",");
 
-    await supabase.from("questions").insert({
+    if (cols.length < 6) continue;
+
+    await supabaseClient.from("questions").insert({
       exam_id: exam.id,
       question: cols[0],
       option_a: cols[1],
@@ -141,11 +258,11 @@ async function uploadCSV() {
       option_c: cols[3],
       option_d: cols[4],
       correct_answer: cols[5],
-      topic: cols[6]
+      topic: cols[6] || "General"
     });
   }
 
-  alert("Uploaded successfully");
+  alert("Upload complete");
   loadExams();
 }
 
@@ -154,7 +271,7 @@ async function uploadCSV() {
 ========================= */
 async function viewResults(examId) {
 
-  const { data } = await supabase
+  const { data } = await supabaseClient
     .from("results")
     .select("*")
     .eq("exam_id", examId);
@@ -162,7 +279,7 @@ async function viewResults(examId) {
   let html = "<h4>Results</h4>";
 
   data.forEach(r => {
-    html += `<p>${r.student_name} - Score: ${r.score}</p>`;
+    html += `<p>${r.student_name} - ${r.score}/${r.total}</p>`;
   });
 
   document.getElementById("analytics").innerHTML = html;
@@ -173,15 +290,15 @@ async function viewResults(examId) {
 ========================= */
 async function exportCSV(examId) {
 
-  const { data } = await supabase
+  const { data } = await supabaseClient
     .from("results")
     .select("*")
     .eq("exam_id", examId);
 
-  let csv = "Name,Score\n";
+  let csv = "Name,Score,Total\n";
 
   data.forEach(r => {
-    csv += `${r.student_name},${r.score}\n`;
+    csv += `${r.student_name},${r.score},${r.total}\n`;
   });
 
   const blob = new Blob([csv], { type: "text/csv" });
@@ -197,13 +314,12 @@ async function exportCSV(examId) {
 ========================= */
 async function loadAnalytics() {
 
-  const { data } = await supabase.from("results").select("*");
+  const { data } = await supabaseClient.from("results").select("*");
 
-  if (!data.length) return;
+  if (!data || data.length === 0) return;
 
-  let avg = data.reduce((a, b) => a + b.score, 0) / data.length;
-
-  let top = data.sort((a,b)=>b.score-a.score)[0];
+  const avg = data.reduce((a, b) => a + b.score, 0) / data.length;
+  const top = [...data].sort((a,b)=>b.score-a.score)[0];
 
   document.getElementById("analytics").innerHTML = `
     <p>Average Score: ${avg.toFixed(2)}</p>
@@ -215,9 +331,10 @@ async function loadAnalytics() {
    LIVE MONITORING
 ========================= */
 function startLiveMonitoring() {
+
   setInterval(async () => {
 
-    const { data } = await supabase
+    const { data } = await supabaseClient
       .from("attempts")
       .select("*")
       .eq("status", "in_progress");
@@ -225,7 +342,7 @@ function startLiveMonitoring() {
     let html = "";
 
     data.forEach(a => {
-      html += `<p>${a.student_name} - ${a.exam_id}</p>`;
+      html += `<p>${a.student_id} taking exam ${a.exam_id}</p>`;
     });
 
     document.getElementById("liveMonitor").innerHTML = html;
@@ -234,19 +351,19 @@ function startLiveMonitoring() {
 }
 
 /* =========================
-   ANTI-CHEAT LOG VIEW
+   CHEAT LOGS
 ========================= */
 async function viewCheatLogs(examId) {
 
-  const { data } = await supabase
+  const { data } = await supabaseClient
     .from("anti_cheat_logs")
     .select("*")
     .eq("exam_id", examId);
 
-  let html = "<h4>Cheating Logs</h4>";
+  let html = "<h4>Cheat Logs</h4>";
 
   data.forEach(log => {
-    html += `<p>${log.student_id} - ${log.event_type} (${log.timestamp})</p>`;
+    html += `<p>${log.event_type} - ${log.timestamp}</p>`;
   });
 
   document.getElementById("analytics").innerHTML = html;
