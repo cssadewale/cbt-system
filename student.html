@@ -1,227 +1,277 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #09090b; --surface: #18181b; --primary: #10b981; --border: #27272a; --text: #f4f4f5; --text-muted: #a1a1aa; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: var(--surface); border: 1px solid var(--border); padding: 40px; border-radius: 20px; width: 100%; max-width: 600px; }
-        .hidden { display: none !important; }
-        input { width: 100%; padding: 15px; margin: 10px 0 20px; border-radius: 10px; border: 1px solid var(--border); background: #000; color: #fff; }
-        button { width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; }
-        .opt { padding: 18px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; }
-        .opt.selected { border-color: var(--primary); background: rgba(16,185,129,0.1); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Portal</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root { --bg:#09090b; --surface:#18181b; --primary:#10b981; --border:#27272a; --text:#f4f4f5; --text-muted:#a1a1aa; }
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; padding:20px; }
+.card { background:var(--surface); border:1px solid var(--border); padding:40px; border-radius:20px; width:100%; max-width:600px; }
+.hidden { display:none !important; }
+input { width:100%; padding:15px; margin:10px 0 20px; border-radius:10px; border:1px solid var(--border); background:#000; color:#fff; }
+button { width:100%; padding:16px; background:var(--primary); color:#000; font-weight:700; border:none; border-radius:10px; cursor:pointer; }
+.opt { padding:18px; border:1px solid var(--border); border-radius:12px; margin-bottom:12px; cursor:pointer; }
+.opt.selected { border-color:var(--primary); background:rgba(16,185,129,0.1); }
+</style>
 </head>
+
 <body>
 
+<!-- ENTRY -->
 <div id="entry-card" class="card">
-    <h2 style="text-align:center">Student Portal</h2>
-    <p style="text-align:center; color:var(--text-muted)">Verify details to start.</p>
-    <input type="text" id="s-name" placeholder="Full Name">
-    <input type="text" id="s-class" placeholder="Class">
-    <input type="text" id="exam-pin" placeholder="Exam PIN (if required)">
-    <button id="start-btn" onclick="validateAttempt()">Start Assessment</button>
+<h2 style="text-align:center">Student Portal</h2>
+<p style="text-align:center;color:var(--text-muted)">Verify details to start.</p>
+
+<input type="text" id="s-name" placeholder="Full Name">
+<input type="text" id="s-class" placeholder="Class">
+<input type="text" id="exam-pin" placeholder="Exam PIN (if required)">
+
+<!-- NEW -->
+<input type="text" id="student-pin" placeholder="Student PIN (Required)">
+
+<button id="start-btn" onclick="validateAttempt()">Start Assessment</button>
 </div>
 
-<div id="exam-card" class="card hidden" style="max-width: 800px;">
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-        <span id="progress-text"></span>
-        <span id="timer" style="color:var(--primary); font-weight:800;"></span>
-    </div>
-    <div id="q-text" style="font-size: 20px; margin-bottom:30px;"></div>
-    <div id="options-box"></div>
-    <div style="display:flex; gap:10px; margin-top:20px">
-        <button onclick="prev()" style="background:var(--border); color:#fff; width:100px;">Back</button>
-        <button onclick="next()" id="next-btn">Next</button>
-    </div>
+<!-- EXAM -->
+<div id="exam-card" class="card hidden" style="max-width:800px;">
+<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+<span id="progress-text"></span>
+<span id="timer" style="color:var(--primary);font-weight:800;"></span>
 </div>
 
-<div id="result-view" class="card hidden" style="max-width: 800px; text-align:center;">
-    <h2>Results Saved Successfully</h2>
-    <h1 id="score-text" style="color:var(--primary); font-size:72px;"></h1>
+<div id="q-text" style="font-size:20px;margin-bottom:30px;"></div>
+<div id="options-box"></div>
+
+<div style="display:flex;gap:10px;margin-top:20px">
+<button onclick="prev()" style="background:var(--border);color:#fff;width:100px;">Back</button>
+<button onclick="next()" id="next-btn">Next</button>
+</div>
+</div>
+
+<!-- RESULT -->
+<div id="result-view" class="card hidden" style="max-width:800px;text-align:center;">
+<h2>Results Saved Successfully</h2>
+<h1 id="score-text" style="color:var(--primary);font-size:72px;"></h1>
 </div>
 
 <script>
-const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+const SB_URL='https://pstnsaqjshmtintjrnas.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
 
 let exam=null, questions=[], current=0, answers={}, timeLeft=0, attemptNum=1, timerObj=null;
-let tabSwitchCount = 0;
+let tabSwitchCount=0;
 
-async function init() {
-    const code = new URLSearchParams(window.location.search).get('code');
-    if(!code) {
-        alert("Invalid exam link.");
-        return;
-    }
+// NEW GLOBALS
+let student=null;
+let attemptId=null;
+let autosaveInterval=null;
 
-    try {
-        const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`, {
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-        });
+/* INIT */
+async function init(){
+const code=new URLSearchParams(window.location.search).get('code');
+if(!code) return alert("Invalid exam link.");
 
-        const data = await res.json();
-        if(!data.length) return alert("Exam not found.");
+const res=await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`,{
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
+});
 
-        exam = data[0];
+const data=await res.json();
+if(!data.length) return alert("Exam not found.");
 
-        if(!exam.is_open) return alert("Exam is closed.");
+exam=data[0];
 
-        questions = JSON.parse(exam.csv_data).sort(() => Math.random() - 0.5);
+if(!exam.is_open) return alert("Exam closed.");
 
-        if(exam.select_count > 0) questions = questions.slice(0, exam.select_count);
+questions=JSON.parse(exam.csv_data).sort(()=>Math.random()-0.5);
 
-    } catch(e) {
-        alert("Connection Error.");
-    }
+if(exam.select_count>0) questions=questions.slice(0,exam.select_count);
 }
 
-async function validateAttempt() {
-    const n = document.getElementById('s-name').value.trim();
-    const c = document.getElementById('s-class').value.trim();
-    const pin = document.getElementById('exam-pin').value.trim();
+/* VALIDATION */
+async function validateAttempt(){
+const n=document.getElementById('s-name').value.trim();
+const c=document.getElementById('s-class').value.trim();
+const pin=document.getElementById('exam-pin').value.trim();
+const studentPin=document.getElementById('student-pin').value.trim();
 
-    if(!n || !c) return alert("Fill in details.");
+if(!n||!c||!studentPin) return alert("Complete all fields.");
 
-    if(exam.pin && exam.pin !== pin) {
-        return alert("Invalid exam PIN.");
-    }
+if(exam.pin && exam.pin!==pin) return alert("Invalid exam PIN.");
 
-    const btn = document.getElementById('start-btn');
-    btn.innerText = "Checking...";
-    btn.disabled = true;
+// FETCH STUDENT
+const sres=await fetch(`${SB_URL}/rest/v1/students?student_pin=eq.${studentPin}`,{
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
+});
+const sdata=await sres.json();
+if(!sdata.length) return alert("Invalid Student PIN");
+student=sdata[0];
 
-    try {
-        const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}&select=*`, {
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-        });
+// CHECK ATTEMPT
+const ares=await fetch(`${SB_URL}/rest/v1/exam_attempts?exam_id=eq.${exam.id}&student_id=eq.${student.id}&is_submitted=eq.false`,{
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
+});
+const adata=await ares.json();
 
-        const history = await res.json();
-        attemptNum = history.length + 1;
-
-        if(attemptNum > exam.attempt_limit) {
-            alert("Attempt limit exceeded.");
-            btn.innerText = "Start Assessment";
-            btn.disabled = false;
-            return;
-        }
-
-        startExam();
-
-    } catch(e) {
-        alert("Connection Error.");
-        btn.innerText = "Start Assessment";
-        btn.disabled = false;
-    }
+if(adata.length){
+let a=adata[0];
+attemptId=a.id;
+answers=a.answers||{};
+current=a.current_index||0;
+timeLeft=a.time_left||exam.duration*60;
+}else{
+const cres=await fetch(`${SB_URL}/rest/v1/exam_attempts`,{
+method:'POST',
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+body:JSON.stringify({exam_id:exam.id,student_id:student.id,time_left:exam.duration*60})
+});
+attemptId=(await cres.json())[0]?.id;
 }
 
-function startExam() {
-    document.getElementById('entry-card').classList.add('hidden');
-    document.getElementById('exam-card').classList.remove('hidden');
-
-    timeLeft = exam.duration * 60;
-
-    timerObj = setInterval(() => {
-        timeLeft--;
-        let m = Math.floor(timeLeft/60), s = timeLeft%60;
-        document.getElementById('timer').innerText = `${m}:${s<10?'0'+s:s}`;
-
-        if(timeLeft <= 0) submitExam();
-    }, 1000);
-
-    document.addEventListener("visibilitychange", () => {
-        if(document.hidden) {
-            tabSwitchCount++;
-            if(tabSwitchCount >= 2) {
-                alert("Tab switching detected. Exam will be submitted.");
-                submitExam();
-            }
-        }
-    });
-
-    window.onbeforeunload = function() {
-        return "You cannot leave during the exam.";
-    };
-
-    showQ();
+startExam();
 }
 
-function showQ() {
-    const q = questions[current];
-    document.getElementById('q-text').innerText = `${current+1}. ${q.q}`;
-    document.getElementById('progress-text').innerText = `Q ${current+1}/${questions.length}`;
+/* START */
+function startExam(){
+document.getElementById('entry-card').classList.add('hidden');
+document.getElementById('exam-card').classList.remove('hidden');
 
-    const box = document.getElementById('options-box');
-    box.innerHTML = '';
+if(!timeLeft) timeLeft=exam.duration*60;
 
-    ['A','B','C','D'].forEach(l => {
-        const val = q[l.toLowerCase()];
-        if(!val) return;
+timerObj=setInterval(()=>{
+timeLeft--;
+let m=Math.floor(timeLeft/60),s=timeLeft%60;
+document.getElementById('timer').innerText=`${m}:${s<10?'0'+s:s}`;
+if(timeLeft<=0) submitExam();
+},1000);
 
-        const dv = document.createElement('div');
-        dv.className = `opt ${answers[current] === l ? 'selected' : ''}`;
-        dv.innerHTML = `<b>${l}.</b> ${val}`;
-        dv.onclick = () => { answers[current] = l; showQ(); };
+// AUTOSAVE
+autosaveInterval=setInterval(saveProgress,5000);
 
-        box.appendChild(dv);
-    });
+// ANTI-CHEAT
+document.addEventListener("visibilitychange",logCheat);
+window.addEventListener("blur",logCheat);
+
+showQ();
 }
 
-function next() {
-    if(current < questions.length - 1) {
-        current++;
-        showQ();
-    } else if(confirm("Submit exam?")) {
-        submitExam();
-    }
+/* SHOW QUESTION */
+function showQ(){
+const q=questions[current];
+document.getElementById('q-text').innerText=`${current+1}. ${q.q}`;
+document.getElementById('progress-text').innerText=`Q ${current+1}/${questions.length}`;
+
+const box=document.getElementById('options-box');
+box.innerHTML='';
+
+['A','B','C','D'].forEach(l=>{
+const val=q[l.toLowerCase()];
+if(!val) return;
+
+const dv=document.createElement('div');
+dv.className=`opt ${answers[current]===l?'selected':''}`;
+dv.innerHTML=`<b>${l}.</b> ${val}`;
+dv.onclick=()=>{answers[current]=l;saveProgress();showQ();};
+box.appendChild(dv);
+});
 }
 
-function prev() {
-    if(current > 0) {
-        current--;
-        showQ();
-    }
+/* NAVIGATION */
+function next(){
+if(current<questions.length-1){
+current++; saveProgress(); showQ();
+}else if(confirm("Submit exam?")){
+submitExam();
+}
 }
 
-async function submitExam() {
-    clearInterval(timerObj);
-    window.onbeforeunload = null;
+function prev(){
+if(current>0){
+current--; saveProgress(); showQ();
+}
+}
 
-    let score = 0;
-    questions.forEach((q, i) => {
-        if(answers[i] === q.ans) score++;
-    });
+/* AUTOSAVE */
+async function saveProgress(){
+if(!attemptId) return;
+await fetch(`${SB_URL}/rest/v1/exam_attempts?id=eq.${attemptId}`,{
+method:'PATCH',
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+body:JSON.stringify({
+answers,
+current_index:current,
+time_left:timeLeft,
+updated_at:new Date()
+})
+});
+}
 
-    document.getElementById('exam-card').classList.add('hidden');
-    document.getElementById('result-view').classList.remove('hidden');
-    document.getElementById('score-text').innerText = `${score} / ${questions.length}`;
+/* ANTI-CHEAT */
+async function logCheat(){
+tabSwitchCount++;
 
-    try {
-        await fetch(`${SB_URL}/rest/v1/results`, {
-            method: 'POST',
-            headers: {
-                'apikey': SB_KEY,
-                'Authorization': `Bearer ${SB_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-                exam_id: exam.id,
-                student_name: document.getElementById('s-name').value,
-                student_class: document.getElementById('s-class').value,
-                score: score,
-                total: questions.length,
-                attempt_number: attemptNum,
-                time_taken: (exam.duration * 60) - timeLeft
-            })
-        });
-    } catch(e) {
-        console.error(e);
-    }
+await fetch(`${SB_URL}/rest/v1/anti_cheat_logs`,{
+method:'POST',
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+body:JSON.stringify({
+attempt_id:attemptId,
+event_type:"tab_switch"
+})
+});
+
+if(tabSwitchCount>=(exam.max_tab_switch||2)){
+alert("Cheating detected. Submitting.");
+submitExam();
+}
+}
+
+/* SUBMIT */
+async function submitExam(){
+clearInterval(timerObj);
+clearInterval(autosaveInterval);
+
+let score=0;
+let topicStats={};
+
+questions.forEach((q,i)=>{
+if(answers[i]===q.ans) score++;
+
+if(q.topic){
+if(!topicStats[q.topic]) topicStats[q.topic]={correct:0,total:0};
+topicStats[q.topic].total++;
+if(answers[i]===q.ans) topicStats[q.topic].correct++;
+}
+});
+
+document.getElementById('exam-card').classList.add('hidden');
+document.getElementById('result-view').classList.remove('hidden');
+document.getElementById('score-text').innerText=`${score}/${questions.length}`;
+
+await fetch(`${SB_URL}/rest/v1/results`,{
+method:'POST',
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+body:JSON.stringify({
+exam_id:exam.id,
+student_id:student.id,
+student_name:document.getElementById('s-name').value,
+student_class:document.getElementById('s-class').value,
+score,
+total:questions.length,
+attempt_number:attemptNum,
+time_taken:(exam.duration*60)-timeLeft,
+analytics:topicStats
+})
+});
+
+// MARK ATTEMPT COMPLETE
+await fetch(`${SB_URL}/rest/v1/exam_attempts?id=eq.${attemptId}`,{
+method:'PATCH',
+headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+body:JSON.stringify({is_submitted:true})
+});
 }
 
 init();
