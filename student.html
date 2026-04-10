@@ -1,564 +1,377 @@
-<!DOCTYPE html>  
-<html lang="en">  
-<head>  
-  <meta charset="UTF-8">  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-  <title>Student Portal</title>  
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">  
-  <style>  
-    :root {  
-      --bg: #09090b;  
-      --surface: #18181b;  
-      --surface-2: #27272a;  
-      --primary: #10b981;  
-      --danger: #ef4444;  
-      --warning: #f59e0b;  
-      --border: #27272a;  
-      --text: #f4f4f5;  
-      --text-muted: #a1a1aa;  
-    }  
-  
-    * {  
-      box-sizing: border-box;  
-      margin: 0;  
-      padding: 0;  
-    }  
-  
-    body {  
-      font-family: 'Plus Jakarta Sans', sans-serif;  
-      background: var(--bg);  
-      color: var(--text);  
-      min-height: 100vh;  
-      padding: 20px;  
-    }  
-  
-    .card {  
-      background: var(--surface);  
-      border: 1px solid var(--border);  
-      border-radius: 20px;  
-      padding: 30px;  
-      width: 100%;  
-      max-width: 1100px;  
-      margin: 0 auto;  
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);  
-    }  
-  
-    .hidden {  
-      display: none !important;  
-    }  
-  
-    h2, h3 {  
-      margin-bottom: 15px;  
-    }  
-  
-    p {  
-      color: var(--text-muted);  
-      margin-bottom: 20px;  
-    }  
-  
-    input {  
-      width: 100%;  
-      padding: 15px;  
-      margin-bottom: 15px;  
-      border-radius: 12px;  
-      border: 1px solid var(--border);  
-      background: #000;  
-      color: #fff;  
-      font-size: 15px;  
-    }  
-  
-    button {  
-      border: none;  
-      border-radius: 12px;  
-      padding: 15px 18px;  
-      font-weight: 700;  
-      cursor: pointer;  
-      transition: 0.2s ease;  
-    }  
-  
-    button:hover {  
-      opacity: 0.9;  
-    }  
-  
-    button:disabled {  
-      opacity: 0.5;  
-      cursor: not-allowed;  
-    }  
-  
-    .primary-btn {  
-      background: var(--primary);  
-      color: #000;  
-      width: 100%;  
-    }  
-  
-    .secondary-btn {  
-      background: var(--surface-2);  
-      color: #fff;  
-    }  
-  
-    .exam-layout {  
-      display: grid;  
-      grid-template-columns: 250px 1fr;  
-      gap: 20px;  
-    }  
-  
-    .question-panel {  
-      background: #111;  
-      border: 1px solid var(--border);  
-      border-radius: 16px;  
-      padding: 20px;  
-      height: fit-content;  
-      position: sticky;  
-      top: 20px;  
-    }  
-  
-    .question-grid {  
-      display: grid;  
-      grid-template-columns: repeat(5, 1fr);  
-      gap: 10px;  
-      margin-top: 15px;  
-    }  
-  
-    .question-number {  
-      width: 40px;  
-      height: 40px;  
-      border-radius: 10px;  
-      border: 1px solid var(--border);  
-      background: #000;  
-      color: #fff;  
-      font-weight: 700;  
-      cursor: pointer;  
-    }  
-  
-    .question-number.active {  
-      background: var(--primary);  
-      color: #000;  
-    }  
-  
-    .question-number.answered {  
-      border-color: var(--primary);  
-      color: var(--primary);  
-    }  
-  
-    .opt {  
-      padding: 18px;  
-      border: 1px solid var(--border);  
-      border-radius: 12px;  
-      margin-bottom: 12px;  
-      cursor: pointer;  
-      transition: 0.2s ease;  
-      background: #111;  
-    }  
-  
-    .opt:hover {  
-      border-color: var(--primary);  
-    }  
-  
-    .opt.selected {  
-      border-color: var(--primary);  
-      background: rgba(16,185,129,0.1);  
-    }  
-  
-    .top-bar {  
-      display: flex;  
-      justify-content: space-between;  
-      align-items: center;  
-      margin-bottom: 25px;  
-      gap: 15px;  
-      flex-wrap: wrap;  
-    }  
-  
-    .review-card {  
-      border: 1px solid var(--border);  
-      border-radius: 16px;  
-      padding: 20px;  
-      margin-bottom: 20px;  
-      background: #111;  
-    }  
-  
-    .correct {  
-      border-left: 5px solid var(--primary);  
-    }  
-  
-    .wrong {  
-      border-left: 5px solid var(--danger);  
-    }  
-  
-    .tag {  
-      display: inline-block;  
-      padding: 6px 12px;  
-      border-radius: 999px;  
-      font-size: 12px;  
-      font-weight: 700;  
-      margin-bottom: 12px;  
-    }  
-  
-    .tag-correct {  
-      background: rgba(16,185,129,0.15);  
-      color: var(--primary);  
-    }  
-  
-    .tag-wrong {  
-      background: rgba(239,68,68,0.15);  
-      color: var(--danger);  
-    }  
-  
-    @media (max-width: 900px) {  
-      .exam-layout {  
-        grid-template-columns: 1fr;  
-      }  
-  
-      .question-panel {  
-        position: static;  
-      }  
-    }  
-  </style>  
-</head>  
-<body>  
-  
-<div id="entry-card" class="card" style="max-width:600px;">  
-  <h2 style="text-align:center;">Student Portal</h2>  
-  <p style="text-align:center;">Verify your details to begin the assessment.</p>  
-  
-  <div id="status-message"></div>  
-  
-  <input type="text" id="s-name" placeholder="Full Name">  
-  <input type="text" id="s-class" placeholder="Class">  
-  <button id="start-btn" class="primary-btn" onclick="validateAttempt()">Start Assessment</button>  
-</div>  
-  
-<div id="exam-card" class="card hidden">  
-  <div class="top-bar">  
-    <div>  
-      <h2 id="exam-subject"></h2>  
-      <p id="progress-text"></p>  
-    </div>  
-    <div id="timer" style="font-size:24px; font-weight:800; color:var(--primary);"></div>  
-  </div>  
-  
-  <div class="exam-layout">  
-    <div class="question-panel">  
-      <h3>Questions</h3>  
-      <p>Click any number to jump directly to that question.</p>  
-      <div class="question-grid" id="question-grid"></div>  
-    </div>  
-  
-    <div>  
-      <div id="q-text" style="font-size:22px; margin-bottom:25px;"></div>  
-      <div id="options-box"></div>  
-  
-      <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">  
-        <button class="secondary-btn" onclick="prev()">Back</button>  
-        <button class="primary-btn" style="width:auto;" onclick="next()" id="next-btn">Next</button>  
-      </div>  
-    </div>  
-  </div>  
-</div>  
-  
-<div id="result-view" class="card hidden">  
-  <div style="text-align:center; margin-bottom:30px;">  
-    <h2>Assessment Completed</h2>  
-    <h1 id="score-text" style="font-size:72px; color:var(--primary);"></h1>  
-    <p id="summary-text"></p>  
-  </div>  
-  
-  <h2>Review of Questions</h2>  
-  <div id="review-box"></div>  
-</div>  
-  
-<script>  
-const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';  
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';  
-  
-let exam = null;  
-let questions = [];  
-let current = 0;  
-let answers = {};  
-let timeLeft = 0;  
-let attemptNum = 1;  
-let timerObj = null;  
-let tabSwitchCount = 0;  
-  
-function showError(message) {  
-  document.getElementById('status-message').innerHTML = `<div style="padding:12px; border-radius:10px; background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.3); margin-bottom:20px;">${message}</div>`;  
-}  
-  
-async function init() {  
-  const code = new URLSearchParams(window.location.search).get('code');  
-  
-  if (!code) {  
-    showError('Invalid exam link.');  
-    document.getElementById('start-btn').disabled = true;  
-    return;  
-  }  
-  
-  try {  
-    const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`, {  
-      headers: {  
-        'apikey': SB_KEY,  
-        'Authorization': `Bearer ${SB_KEY}`  
-      }  
-    });  
-  
-    const data = await res.json();  
-  
-    if (!data.length) {  
-      showError('Exam not found.');  
-      document.getElementById('start-btn').disabled = true;  
-      return;  
-    }  
-  
-    exam = data[0];  
-  
-    if (!exam.is_open) {  
-      showError('This exam is closed.');  
-      document.getElementById('start-btn').disabled = true;  
-      return;  
-    }  
-  
-    questions = JSON.parse(exam.csv_data).sort(() => Math.random() - 0.5);  
-  
-    if (Number(exam.select_count) > 0) {  
-      questions = questions.slice(0, Number(exam.select_count));  
-    }  
-  
-  } catch (e) {  
-    console.error(e);  
-    showError('Connection error.');  
-    document.getElementById('start-btn').disabled = true;  
-  }  
-}  
-  
-async function validateAttempt() {  
-  const n = document.getElementById('s-name').value.trim();  
-  const c = document.getElementById('s-class').value.trim();  
-  
-  if (!n || !c) {  
-    alert('Fill in all details.');  
-    return;  
-  }  
-  
-  const btn = document.getElementById('start-btn');  
-  btn.disabled = true;  
-  btn.innerText = 'Checking...';  
-  
-  try {  
-    const res = await fetch(`${SB_URL}/rest/v1/results?student_name=eq.${encodeURIComponent(n)}&student_class=eq.${encodeURIComponent(c)}&exam_id=eq.${exam.id}&select=*`, {  
-      headers: {  
-        'apikey': SB_KEY,  
-        'Authorization': `Bearer ${SB_KEY}`  
-      }  
-    });  
-  
-    const history = await res.json();  
-    attemptNum = history.length + 1;  
-  
-    if (attemptNum > Number(exam.attempt_limit)) {  
-      alert('Attempt limit exceeded.');  
-      btn.disabled = false;  
-      btn.innerText = 'Start Assessment';  
-      return;  
-    }  
-  
-    startExam();  
-  
-  } catch (e) {  
-    console.error(e);  
-    alert('Could not verify attempt history.');  
-    btn.disabled = false;  
-    btn.innerText = 'Start Assessment';  
-  }  
-}  
-  
-function startExam() {  
-  document.getElementById('entry-card').classList.add('hidden');  
-  document.getElementById('exam-card').classList.remove('hidden');  
-  document.getElementById('exam-subject').innerText = exam.subject;  
-  
-  timeLeft = Number(exam.duration) * 60;  
-  
-  timerObj = setInterval(() => {  
-    timeLeft--;  
-  
-    const m = Math.floor(timeLeft / 60);  
-    const s = timeLeft % 60;  
-  
-    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;  
-  
-    if (timeLeft <= 0) {  
-      submitExam();  
-    }  
-  }, 1000);  
-  
-  document.addEventListener('visibilitychange', () => {  
-    if (document.hidden) {  
-      tabSwitchCount++;  
-  
-      if (tabSwitchCount >= 2) {  
-        alert('Tab switching detected. Exam will be submitted automatically.');  
-        submitExam();  
-      }  
-    }  
-  });  
-  
-  window.onbeforeunload = function() {  
-    return 'You cannot leave during the exam.';  
-  };  
-  
-  renderQuestionNumbers();  
-  showQ();  
-}  
-  
-function renderQuestionNumbers() {  
-  const grid = document.getElementById('question-grid');  
-  grid.innerHTML = '';  
-  
-  questions.forEach((_, index) => {  
-    const btn = document.createElement('button');  
-    btn.className = 'question-number';  
-  
-    if (index === current) btn.classList.add('active');  
-    if (answers[index]) btn.classList.add('answered');  
-  
-    btn.innerText = index + 1;  
-    btn.onclick = () => {  
-      current = index;  
-      showQ();  
-    };  
-  
-    grid.appendChild(btn);  
-  });  
-}  
-  
-function showQ() {  
-  const q = questions[current];  
-  
-  document.getElementById('q-text').innerText = `${current + 1}. ${q.q}`;  
-  document.getElementById('progress-text').innerText = `Question ${current + 1} of ${questions.length}`;  
-  
-  const box = document.getElementById('options-box');  
-  box.innerHTML = '';  
-  
-  ['A', 'B', 'C', 'D'].forEach(letter => {  
-    const value = q[letter.toLowerCase()];  
-    if (!value) return;  
-  
-    const div = document.createElement('div');  
-    div.className = `opt ${answers[current] === letter ? 'selected' : ''}`;  
-    div.innerHTML = `<strong>${letter}.</strong> ${value}`;  
-  
-    div.onclick = () => {  
-      answers[current] = letter;  
-      showQ();  
-    };  
-  
-    box.appendChild(div);  
-  });  
-  
-  document.getElementById('next-btn').innerText = current === questions.length - 1 ? 'Submit Exam' : 'Next';  
-  renderQuestionNumbers();  
-}  
-  
-function next() {  
-  if (current < questions.length - 1) {  
-    current++;  
-    showQ();  
-  } else {  
-    if (confirm('Submit exam now?')) {  
-      submitExam();  
-    }  
-  }  
-}  
-  
-function prev() {  
-  if (current > 0) {  
-    current--;  
-    showQ();  
-  }  
-}  
-  
-async function submitExam() {  
-  clearInterval(timerObj);  
-  window.onbeforeunload = null;  
-  
-  let score = 0;  
-  
-  questions.forEach((q, i) => {  
-    if (answers[i] === q.ans) {  
-      score++;  
-    }  
-  });  
-  
-  document.getElementById('exam-card').classList.add('hidden');  
-  document.getElementById('result-view').classList.remove('hidden');  
-  
-  document.getElementById('score-text').innerText = `${score} / ${questions.length}`;  
-  document.getElementById('summary-text').innerText = `You answered ${score} correctly and missed ${questions.length - score}.`;  
-  
-  const reviewBox = document.getElementById('review-box');  
-  reviewBox.innerHTML = '';  
-  
-  questions.forEach((q, i) => {  
-    const studentAnswer = answers[i] || 'Not Answered';  
-    const correctAnswer = q.ans;  
-    const isCorrect = studentAnswer === correctAnswer;  
-  
-    const review = document.createElement('div');  
-    review.className = `review-card ${isCorrect ? 'correct' : 'wrong'}`;  
-  
-    review.innerHTML = `  
-      <div class="tag ${isCorrect ? 'tag-correct' : 'tag-wrong'}">  
-        ${isCorrect ? 'Correct' : 'Incorrect'}  
-      </div>  
-  
-      <h3>Question ${i + 1}</h3>  
-      <p style="color:#fff; margin-bottom:15px;">${q.q}</p>  
-  
-      <p><strong>Your Answer:</strong> ${studentAnswer}</p>  
-      <p><strong>Correct Answer:</strong> ${correctAnswer}</p>  
-  
-      <div style="margin-top:10px; padding:12px; background:#18181b; border-radius:10px;">  
-        <strong>Correct Option Text:</strong><br>  
-        ${q[correctAnswer.toLowerCase()] || 'N/A'}  
-      </div>  
-  
-      ${q.exp ? `  
-        <div style="margin-top:15px; padding:12px; background:rgba(16,185,129,0.08); border-radius:10px; border:1px solid rgba(16,185,129,0.15);">  
-          <strong>Explanation:</strong><br>  
-          ${q.exp}  
-        </div>  
-      ` : ''}  
-    `;  
-  
-    reviewBox.appendChild(review);  
-  });  
-  
-  try {  
-    await fetch(`${SB_URL}/rest/v1/results`, {  
-      method: 'POST',  
-      headers: {  
-        'apikey': SB_KEY,  
-        'Authorization': `Bearer ${SB_KEY}`,  
-        'Content-Type': 'application/json',  
-        'Prefer': 'return=minimal'  
-      },  
-      body: JSON.stringify({  
-        exam_id: exam.id,  
-        student_name: document.getElementById('s-name').value.trim(),  
-        student_class: document.getElementById('s-class').value.trim(),  
-        score: score,  
-        total: questions.length,  
-        attempt_number: attemptNum,  
-        time_taken: (Number(exam.duration) * 60) - timeLeft  
-      })  
-    });  
-  } catch (e) {  
-    console.error(e);  
-  }  
-}  
-  
-init();  
-</script>  
-  
-</body>  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Portal</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:#09090b;
+  --surface:#18181b;
+  --surface-2:#27272a;
+  --primary:#10b981;
+  --danger:#ef4444;
+  --border:#27272a;
+  --text:#f4f4f5;
+  --text-muted:#a1a1aa;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding:20px;
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:30px;
+  max-width:1100px;
+  margin:auto;
+}
+
+.hidden{display:none}
+
+input{
+  width:100%;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#000;
+  color:#fff;
+}
+
+button{
+  padding:15px;
+  border:none;
+  border-radius:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.primary-btn{background:var(--primary);color:#000;width:100%}
+.secondary-btn{background:var(--surface-2);color:#fff}
+
+.exam-layout{
+  display:grid;
+  grid-template-columns:250px 1fr;
+  gap:20px;
+}
+
+.question-panel{
+  background:#111;
+  padding:20px;
+  border-radius:16px;
+  position:sticky;
+  top:20px;
+}
+
+.question-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+}
+
+.question-number{
+  width:40px;height:40px;
+  border-radius:10px;
+  background:#000;color:#fff;
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+
+.question-number.active{background:var(--primary);color:#000}
+.question-number.answered{border-color:var(--primary);color:var(--primary)}
+
+.opt{
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:10px;
+  cursor:pointer;
+}
+
+.opt.selected{
+  border-color:var(--primary);
+  background:rgba(16,185,129,0.1);
+}
+
+/* ================= CALCULATOR ================= */
+
+#calc-btn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:var(--primary);
+  color:#000;
+  padding:16px;
+  border-radius:50%;
+  font-size:20px;
+  cursor:pointer;
+  z-index:999;
+}
+
+#calculator{
+  position:fixed;
+  bottom:80px;
+  right:20px;
+  width:300px;
+  background:#000;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:15px;
+  display:none;
+  z-index:999;
+}
+
+#calc-display{
+  width:100%;
+  height:50px;
+  margin-bottom:10px;
+  font-size:18px;
+  padding:10px;
+  background:#111;
+  color:#0f0;
+  border:none;
+}
+
+.calc-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+}
+
+.calc-btn{
+  padding:10px;
+  background:#111;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.calc-btn:hover{
+  background:var(--primary);
+  color:#000;
+}
+
+@media(max-width:900px){
+  .exam-layout{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<!-- CALCULATOR -->
+<div id="calc-btn" onclick="toggleCalc()">🧮</div>
+
+<div id="calculator">
+<input id="calc-display" readonly>
+
+<div class="calc-grid">
+<button class="calc-btn" onclick="calcInput('7')">7</button>
+<button class="calc-btn" onclick="calcInput('8')">8</button>
+<button class="calc-btn" onclick="calcInput('9')">9</button>
+<button class="calc-btn" onclick="calcInput('/')">÷</button>
+<button class="calc-btn" onclick="calcFunc('sqrt')">√</button>
+
+<button class="calc-btn" onclick="calcInput('4')">4</button>
+<button class="calc-btn" onclick="calcInput('5')">5</button>
+<button class="calc-btn" onclick="calcInput('6')">6</button>
+<button class="calc-btn" onclick="calcInput('*')">×</button>
+<button class="calc-btn" onclick="calcFunc('pow')">x²</button>
+
+<button class="calc-btn" onclick="calcInput('1')">1</button>
+<button class="calc-btn" onclick="calcInput('2')">2</button>
+<button class="calc-btn" onclick="calcInput('3')">3</button>
+<button class="calc-btn" onclick="calcInput('-')">-</button>
+<button class="calc-btn" onclick="calcFunc('log')">log</button>
+
+<button class="calc-btn" onclick="calcInput('0')">0</button>
+<button class="calc-btn" onclick="calcInput('.')">.</button>
+<button class="calc-btn" onclick="calculate()">=</button>
+<button class="calc-btn" onclick="calcInput('+')">+</button>
+<button class="calc-btn" onclick="calcFunc('sin')">sin</button>
+
+<button class="calc-btn" onclick="clearCalc()">C</button>
+<button class="calc-btn" onclick="calcFunc('cos')">cos</button>
+<button class="calc-btn" onclick="calcFunc('tan')">tan</button>
+<button class="calc-btn" onclick="calcInput('(')">(</button>
+<button class="calc-btn" onclick="calcInput(')')">)</button>
+</div>
+</div>
+
+<!-- ENTRY -->
+<div id="entry-card" class="card">
+<h2>Student Portal</h2>
+<p>Enter details to start</p>
+<div id="status-message"></div>
+
+<input id="s-name" placeholder="Full Name">
+<input id="s-class" placeholder="Class">
+
+<button id="start-btn" class="primary-btn" onclick="validateAttempt()">Start Assessment</button>
+</div>
+
+<!-- EXAM -->
+<div id="exam-card" class="card hidden">
+<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+<div>
+<h2 id="exam-subject"></h2>
+<p id="progress-text"></p>
+</div>
+<div id="timer"></div>
+</div>
+
+<div class="exam-layout">
+<div class="question-panel">
+<div class="question-grid" id="question-grid"></div>
+</div>
+
+<div>
+<div id="q-text" style="margin-bottom:20px;"></div>
+<div id="options-box"></div>
+
+<button class="secondary-btn" onclick="prev()">Back</button>
+<button class="primary-btn" onclick="next()" id="next-btn">Next</button>
+</div>
+</div>
+</div>
+
+<!-- RESULT -->
+<div id="result-view" class="card hidden">
+<h2>Completed</h2>
+<h1 id="score-text"></h1>
+<p id="summary-text"></p>
+<div id="review-box"></div>
+</div>
+
+<script>
+const SB_URL='https://pstnsaqjshmtintjrnas.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+
+let exam,questions=[],current=0,answers={},timeLeft=0,attemptNum=1,timerObj=null,tabSwitchCount=0;
+
+/* ================= CALCULATOR ================= */
+
+function toggleCalc(){
+  const c=document.getElementById('calculator');
+  c.style.display=c.style.display==='block'?'none':'block';
+}
+
+function calcInput(v){
+  document.getElementById('calc-display').value+=v;
+}
+
+function clearCalc(){
+  document.getElementById('calc-display').value='';
+}
+
+function calcFunc(type){
+  let val=parseFloat(document.getElementById('calc-display').value);
+  if(isNaN(val)) return;
+
+  switch(type){
+    case 'sqrt': val=Math.sqrt(val); break;
+    case 'pow': val=Math.pow(val,2); break;
+    case 'sin': val=Math.sin(val*Math.PI/180); break;
+    case 'cos': val=Math.cos(val*Math.PI/180); break;
+    case 'tan': val=Math.tan(val*Math.PI/180); break;
+    case 'log': val=Math.log10(val); break;
+  }
+  document.getElementById('calc-display').value=val;
+}
+
+function calculate(){
+  try{
+    let exp=document.getElementById('calc-display').value;
+    let result=Function('return '+exp)();
+    document.getElementById('calc-display').value=result;
+  }catch{
+    alert('Invalid');
+  }
+}
+
+/* ================= CBT LOGIC ================= */
+
+async function init(){
+  const code=new URLSearchParams(location.search).get('code');
+  const res=await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`,{
+    headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
+  });
+  const data=await res.json();
+  exam=data[0];
+  questions=JSON.parse(exam.csv_data);
+}
+
+function validateAttempt(){
+  startExam();
+}
+
+function startExam(){
+  document.getElementById('entry-card').classList.add('hidden');
+  document.getElementById('exam-card').classList.remove('hidden');
+
+  document.getElementById('exam-subject').innerText=exam.subject;
+
+  timeLeft=exam.duration*60;
+
+  timerObj=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer').innerText=timeLeft;
+  },1000);
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+      tabSwitchCount++;
+      if(tabSwitchCount>=2){
+        alert('Tab switch detected');
+        submitExam();
+      }
+    }
+  });
+
+  showQ();
+}
+
+function showQ(){
+  let q=questions[current];
+  document.getElementById('q-text').innerText=q.q;
+
+  let html='';
+  ['A','B','C','D'].forEach(l=>{
+    html+=`<div class="opt ${answers[current]===l?'selected':''}" onclick="answers[${current}]='${l}';showQ()">${l}. ${q[l.toLowerCase()]}</div>`;
+  });
+
+  document.getElementById('options-box').innerHTML=html;
+}
+
+function next(){
+  current++;
+  if(current>=questions.length) submitExam();
+  else showQ();
+}
+
+function prev(){
+  if(current>0){current--;showQ();}
+}
+
+function submitExam(){
+  clearInterval(timerObj);
+  alert('Exam submitted');
+}
+
+init();
+</script>
+
+</body>
 </html>
