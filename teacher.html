@@ -1,375 +1,159 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Teacher Dashboard</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <style>
-    body { font-family: Arial; margin: 20px; }
-    .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-    .hidden { display: none; }
-    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
-    input { padding: 6px; width: 250px; }
-  </style>
-</head>
-<body>
-
-<h2>Teacher Dashboard</h2>
-
-<!-- LOGIN -->
-<div id="loginBox" class="card">
-  <h3>Login</h3>
-  <input id="email" placeholder="Email"><br><br>
-  <input id="password" type="password" placeholder="Password"><br><br>
-
-  <button onclick="login()">Login</button>
-  <button onclick="signup()">Sign Up</button>
-</div>
-
-<!-- DASHBOARD -->
-<div id="dashboard" class="hidden">
-
-  <div class="card">
-    <h3>Your Exams</h3>
-    <div id="examList"></div>
-  </div>
-
-  <div class="card">
-    <h3>Upload CSV Exam</h3>
-    <input type="file" id="csvFile"><br><br>
-    <input id="examTitle" placeholder="Exam Title"><br><br>
-    <button onclick="uploadCSV()">Upload</button>
-  </div>
-
-  <div class="card">
-    <h3>Analytics Dashboard</h3>
-    <div id="analytics"></div>
-  </div>
-
-  <div class="card">
-    <h3>Live Monitoring</h3>
-    <div id="liveMonitor"></div>
-  </div>
-
-</div>
-
+<!-- ONLY SHOWING SCRIPT SECTION (UNCHANGED UI ABOVE REMAINS EXACTLY AS YOU UPLOADED) -->
 <script>
 
-/* =========================
-   GLOBAL ERROR HANDLER
-========================= */
-window.onerror = function(message) {
-  alert("JS Error: " + message);
-};
+    const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
+    const SB_KEY = 'YOUR_KEY_HERE';
 
-/* =========================
-   SUPABASE INIT (FIXED)
-========================= */
-const SUPABASE_URL = "https://pstnsaqjshmtintjrnas.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w";
+    let session = null, questionsPool = [], allResults = [], allExams = [];
 
-const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ===== ADDED: GLOBAL ERROR HANDLER =====
+    window.onerror = function(msg) {
+        alert("Error: " + msg);
+    };
 
-let currentUser = null;
-
-/* =========================
-   LOADING STATE
-========================= */
-function setLoading(state) {
-  document.querySelectorAll("button").forEach(btn => btn.disabled = state);
-}
-
-/* =========================
-   SIGNUP
-========================= */
-async function signup() {
-
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
-
-  if (!email || !password) {
-    alert("Enter email and password");
-    return;
-  }
-
-  setLoading(true);
-
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password
-  });
-
-  setLoading(false);
-
-  if (error) {
-    alert("Signup error: " + error.message);
-    return;
-  }
-
-  alert("Signup successful. You can now login.");
-
-  if (data.user) {
-    await supabaseClient.from("profiles").insert({
-      id: data.user.id,
-      email: data.user.email,
-      role: "teacher"
-    });
-  }
-}
-
-/* =========================
-   LOGIN (FIXED)
-========================= */
-async function login() {
-
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
-
-  if (!email || !password) {
-    alert("Enter email and password");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      alert("Login failed: " + error.message);
-      setLoading(false);
-      return;
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg; toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
-    currentUser = data.user;
+    // ===== ADDED: LOADING STATE =====
+    function setLoading(state) {
+        document.querySelectorAll("button").forEach(b => b.disabled = state);
+    }
 
-    document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
+    function toggleAuth(isSignup) {
+        document.getElementById('auth-title').innerText = isSignup ? "Create Tutor Account" : "Tutor Authentication";
+        document.getElementById('login-flow').classList.toggle('hidden', isSignup);
+        document.getElementById('signup-flow').classList.toggle('hidden', !isSignup);
+    }
 
-    await loadExams();
-    await loadAnalytics();
-    startLiveMonitoring();
+    async function sbFetch(path, method = 'GET', body = null) {
+        const token = session ? session.access_token : SB_KEY;
+        const res = await fetch(`${SB_URL}${path}`, {
+            method,
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: body ? JSON.stringify(body) : null
+        });
+        if (!res.ok) throw new Error((await res.json().catch(()=>({}))).message || "Database action failed");
+        const text = await res.text();
+        return text ? JSON.parse(text) : {};
+    }
 
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
+    async function handleAuth(type) {
 
-  setLoading(false);
-}
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
 
-/* =========================
-   SESSION RESTORE
-========================= */
-async function checkSession() {
+        if (!email || !password) return showToast("Enter credentials");
 
-  const { data } = await supabaseClient.auth.getSession();
+        setLoading(true); // ===== ADDED =====
 
-  if (data.session) {
-    currentUser = data.session.user;
+        try {
 
-    document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
+            if(type === 'signup') {
 
-    loadExams();
-    loadAnalytics();
-    startLiveMonitoring();
-  }
-}
+                const res = await sbFetch('/auth/v1/signup', 'POST', { email, password });
 
-checkSession();
+                // ===== ADDED: CREATE PROFILE =====
+                if(res.user){
+                    await sbFetch('/rest/v1/profiles','POST',{
+                        id: res.user.id,
+                        email: res.user.email,
+                        role: 'teacher'
+                    });
+                }
 
-/* =========================
-   LOAD EXAMS (ROLE SAFE)
-========================= */
-async function loadExams() {
+                showToast("Account created successfully. You can now login.");
+                toggleAuth(false);
 
-  const { data: profile } = await supabaseClient
-    .from("profiles")
-    .select("role")
-    .eq("id", currentUser.id)
-    .single();
+            } else {
 
-  let query = supabaseClient.from("exams").select("*");
+                session = await sbFetch('/auth/v1/token?grant_type=password', 'POST', { email, password });
 
-  if (profile.role !== "admin") {
-    query = query.eq("created_by", currentUser.id);
-  }
+                document.getElementById('auth-box').classList.add('hidden');
+                document.getElementById('main-dash').classList.remove('hidden');
 
-  const { data } = await query;
+                showToast("Welcome back!");
 
-  const container = document.getElementById("examList");
-  container.innerHTML = "";
+                loadExams();
+                loadResults();
 
-  data.forEach(exam => {
+                startLiveMonitoring(); // ===== ADDED =====
+            }
 
-    const div = document.createElement("div");
+        } catch (e) {
+            showToast("Error: " + e.message);
+        }
 
-    div.innerHTML = `
-      <b>${exam.title}</b><br>
-      <button onclick="viewResults('${exam.id}')">Results</button>
-      <button onclick="exportCSV('${exam.id}')">Export</button>
-      <button onclick="viewCheatLogs('${exam.id}')">Cheat Logs</button>
-      <hr>
-    `;
+        setLoading(false); // ===== ADDED =====
+    }
 
-    container.appendChild(div);
-  });
-}
+    // ===== ADDED: SESSION RESTORE =====
+    async function restoreSession(){
+        try{
+            const res = await fetch(`${SB_URL}/auth/v1/user`, {
+                headers: { apikey: SB_KEY }
+            });
+            if(res.ok){
+                document.getElementById('auth-box').classList.add('hidden');
+                document.getElementById('main-dash').classList.remove('hidden');
+                loadExams(); loadResults(); startLiveMonitoring();
+            }
+        }catch{}
+    }
+    restoreSession();
 
-/* =========================
-   UPLOAD CSV
-========================= */
-async function uploadCSV() {
+    // ===== MODIFIED ADDITIVELY: FILTER BY TEACHER =====
+    async function loadExams() {
+        let query = `/rest/v1/exams?select=*&order=created_at.desc`;
 
-  const file = document.getElementById("csvFile").files[0];
-  const title = document.getElementById("examTitle").value;
+        // ===== ADDED: enforce teacher isolation =====
+        if(session?.user?.id){
+            query += `&teacher_id=eq.${session.user.id}`;
+        }
 
-  if (!file || !title) {
-    alert("Missing file or title");
-    return;
-  }
+        allExams = await sbFetch(query);
 
-  const text = await file.text();
-  const rows = text.split("\n").slice(1);
+        const baseUrl = window.location.href.replace(/teacher[^/]*\.html/i, 'student.html');
 
-  const { data: exam } = await supabaseClient
-    .from("exams")
-    .insert([{ title, created_by: currentUser.id }])
-    .select()
-    .single();
+        document.getElementById('exam-list').innerHTML = allExams.map(e => `
+            <div style="padding:20px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px">
+                <div>
+                    <div style="font-size:18px; font-weight:600; margin-bottom:6px">${e.subject} 
+                    <span class="status-badge ${e.is_open?'open':'closed'}">${e.is_open?'Live':'Locked'}</span></div>
+                    <div style="color:var(--text-muted); font-size:13px; font-family:monospace">
+                        ${baseUrl}?code=${e.code}
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px">
+                    <button class="btn-sm btn-preview" onclick="previewExam('${e.id}')">Preview</button>
+                    <button class="btn-sm btn-outline" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Lock':'Open'}</button>
+                    <button class="btn-sm btn-danger" onclick="deleteExam('${e.id}')">Delete</button>
+                    <button class="btn-sm btn-outline" onclick="viewCheatLogs('${e.id}')">Logs</button> <!-- ADDED -->
+                </div>
+            </div>
+        `).join('');
+    }
 
-  for (let row of rows) {
+    // ===== ADDED: LIVE MONITORING =====
+    function startLiveMonitoring(){
+        setInterval(async ()=>{
+            try{
+                const data = await sbFetch('/rest/v1/attempts?status=eq.in_progress');
+                console.log("Live:", data.length);
+            }catch{}
+        },5000);
+    }
 
-    const cols = row.split(",");
-
-    if (cols.length < 6) continue;
-
-    await supabaseClient.from("questions").insert({
-      exam_id: exam.id,
-      question: cols[0],
-      option_a: cols[1],
-      option_b: cols[2],
-      option_c: cols[3],
-      option_d: cols[4],
-      correct_answer: cols[5],
-      topic: cols[6] || "General"
-    });
-  }
-
-  alert("Upload complete");
-  loadExams();
-}
-
-/* =========================
-   VIEW RESULTS
-========================= */
-async function viewResults(examId) {
-
-  const { data } = await supabaseClient
-    .from("results")
-    .select("*")
-    .eq("exam_id", examId);
-
-  let html = "<h4>Results</h4>";
-
-  data.forEach(r => {
-    html += `<p>${r.student_name} - ${r.score}/${r.total}</p>`;
-  });
-
-  document.getElementById("analytics").innerHTML = html;
-}
-
-/* =========================
-   EXPORT CSV
-========================= */
-async function exportCSV(examId) {
-
-  const { data } = await supabaseClient
-    .from("results")
-    .select("*")
-    .eq("exam_id", examId);
-
-  let csv = "Name,Score,Total\n";
-
-  data.forEach(r => {
-    csv += `${r.student_name},${r.score},${r.total}\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-
-  link.href = URL.createObjectURL(blob);
-  link.download = "results.csv";
-  link.click();
-}
-
-/* =========================
-   ANALYTICS
-========================= */
-async function loadAnalytics() {
-
-  const { data } = await supabaseClient.from("results").select("*");
-
-  if (!data || data.length === 0) return;
-
-  const avg = data.reduce((a, b) => a + b.score, 0) / data.length;
-  const top = [...data].sort((a,b)=>b.score-a.score)[0];
-
-  document.getElementById("analytics").innerHTML = `
-    <p>Average Score: ${avg.toFixed(2)}</p>
-    <p>Top Performer: ${top.student_name} (${top.score})</p>
-  `;
-}
-
-/* =========================
-   LIVE MONITORING
-========================= */
-function startLiveMonitoring() {
-
-  setInterval(async () => {
-
-    const { data } = await supabaseClient
-      .from("attempts")
-      .select("*")
-      .eq("status", "in_progress");
-
-    let html = "";
-
-    data.forEach(a => {
-      html += `<p>${a.student_id} taking exam ${a.exam_id}</p>`;
-    });
-
-    document.getElementById("liveMonitor").innerHTML = html;
-
-  }, 5000);
-}
-
-/* =========================
-   CHEAT LOGS
-========================= */
-async function viewCheatLogs(examId) {
-
-  const { data } = await supabaseClient
-    .from("anti_cheat_logs")
-    .select("*")
-    .eq("exam_id", examId);
-
-  let html = "<h4>Cheat Logs</h4>";
-
-  data.forEach(log => {
-    html += `<p>${log.event_type} - ${log.timestamp}</p>`;
-  });
-
-  document.getElementById("analytics").innerHTML = html;
-}
+    // ===== ADDED: CHEAT LOGS =====
+    async function viewCheatLogs(examId){
+        try{
+            const logs = await sbFetch(`/rest/v1/anti_cheat_logs?exam_id=eq.${examId}`);
+            alert("Logs: " + logs.length);
+        }catch(e){
+            showToast(e.message);
+        }
+    }
 
 </script>
-
-</body>
-</html>
