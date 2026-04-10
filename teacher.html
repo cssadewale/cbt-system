@@ -1,320 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT Pro | Administrator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { 
-            --bg: #09090b; --surface: #18181b; --surface-hover: #27272a; 
-            --primary: #10b981; --primary-hover: #059669; 
-            --border: #27272a; --text: #f4f4f5; --text-muted: #a1a1aa; 
-            --danger: #ef4444; --radius: 16px; 
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
-        
-        .container { max-width: 1000px; margin: 0 auto; }
-        .card { background: var(--surface); border: 1px solid var(--border); padding: 32px; border-radius: var(--radius); margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        h2 { font-size: 24px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.5px; }
-        
-        label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input, select { width: 100%; padding: 16px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: inherit; font-size: 15px; transition: 0.2s; }
-        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
-        
-        button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        
-        .btn-sm { width: auto; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
-        .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
-        .btn-outline:hover { background: rgba(16, 185, 129, 0.1); color: var(--primary); }
-        .btn-preview { background: transparent; color: #3b82f6; border: 1px solid #3b82f6; }
-        .btn-preview:hover { background: rgba(59, 130, 246, 0.1); }
-        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
-        .btn-danger:hover { background: var(--danger); color: white; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        
-        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .open { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
-        .closed { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        th { text-align: left; padding: 16px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; }
-        td { text-align: left; padding: 16px; border-bottom: 1px solid var(--border); }
-        tr:hover td { background: var(--surface-hover); }
-        
-        .hidden { display: none !important; }
-        
-        /* Stats Dashboard */
-        .stat-box { background: var(--bg); border: 1px solid var(--border); padding: 20px; border-radius: 12px; text-align: center; }
-        .stat-num { font-size: 32px; font-weight: 700; color: var(--primary); }
-
-        /* Modal for Preview */
-        #preview-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 100; display: flex; justify-content: center; align-items: center; }
-        .modal-content { background: var(--surface); width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; padding: 30px; border-radius: var(--radius); border: 1px solid var(--border); }
-        .preview-q { background: var(--bg); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
-        
-        #toast { position: fixed; bottom: -100px; right: 20px; background: white; color: black; padding: 16px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: 0.4s; z-index: 1000; }
-        #toast.show { bottom: 20px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Teacher Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    .hidden { display: none; }
+    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+  </style>
 </head>
 <body>
 
-<div id="toast">Notification</div>
+<h2>Teacher Dashboard</h2>
 
-<div id="preview-modal" class="hidden">
-    <div class="modal-content">
-        <div class="flex-between" style="margin-bottom: 20px; position: sticky; top: 0; background: var(--surface); padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-            <h2 id="modal-title" style="margin: 0;">Exam Preview</h2>
-            <button class="btn-sm btn-danger" onclick="document.getElementById('preview-modal').classList.add('hidden')">Close</button>
-        </div>
-        <div id="modal-body"></div>
-    </div>
+<div id="loginBox" class="card">
+  <h3>Login</h3>
+  <input id="email" placeholder="Email"><br><br>
+  <input id="password" type="password" placeholder="Password"><br><br>
+  <button onclick="login()">Login</button>
 </div>
 
-<div class="container">
-    <div id="auth-box" class="card" style="max-width:440px; margin: 80px auto;">
-        <h2 id="auth-title" style="text-align:center">Tutor Authentication</h2>
-        <label>Email Address</label>
-        <input type="email" id="email" placeholder="instructor@school.com">
-        <label>Secure Password</label>
-        <input type="password" id="pass" placeholder="••••••••">
-        
-        <div id="login-flow">
-            <button onclick="handleAuth('login')">Access Dashboard</button>
-            <p style="text-align:center; font-size:14px; margin-top:20px; color:var(--text-muted)">First time? <a href="#" onclick="toggleAuth(true)" style="color:var(--primary); text-decoration:none; font-weight:600">Create an account</a></p>
-        </div>
-        <div id="signup-flow" class="hidden">
-            <button onclick="handleAuth('signup')">Register Account</button>
-            <p style="text-align:center; font-size:14px; margin-top:20px; color:var(--text-muted)">Already registered? <a href="#" onclick="toggleAuth(false)" style="color:var(--primary); text-decoration:none; font-weight:600">Login here</a></p>
-        </div>
-    </div>
+<div id="dashboard" class="hidden">
 
-    <div id="main-dash" class="hidden">
-        <div class="flex-between" style="margin-bottom: 24px;">
-            <h2>Admin Dashboard</h2>
-            <div style="color:var(--text-muted); font-size:14px">Connected successfully</div>
-        </div>
+  <div class="card">
+    <h3>Your Exams</h3>
+    <div id="examList"></div>
+  </div>
 
-        <div class="card">
-            <h2>Configure New Assessment</h2>
-            <div class="grid">
-                <div><label>Subject / Module Name</label><input type="text" id="ex-sub" placeholder="e.g. Advanced Physics 101"></div>
-                <div><label>Duration (Minutes)</label><input type="number" id="ex-dur" placeholder="e.g. 45"></div>
-            </div>
-            <div class="grid">
-                <div>
-                    <label>Allowed Attempts per Student</label>
-                    <select id="ex-limit">
-                        <option value="1">Strict: 1 Attempt</option>
-                        <option value="2">Standard: 2 Attempts</option>
-                        <option value="999">Practice: Unlimited</option>
-                    </select>
-                </div>
-                <div><label>Questions to Pull (Randomized)</label><input type="number" id="ex-count" placeholder="Enter 0 to use all questions"></div>
-            </div>
-            <label style="color:var(--primary)">Upload Question Bank (CSV format)</label>
-            <input type="file" id="csv-file" accept=".csv" style="padding:10px">
-            <button onclick="createExam()">Initialize & Publish Examination</button>
-        </div>
+  <div class="card">
+    <h3>Upload CSV Exam</h3>
+    <input type="file" id="csvFile"><br><br>
+    <input id="examTitle" placeholder="Exam Title"><br><br>
+    <button onclick="uploadCSV()">Upload</button>
+  </div>
 
-        <div class="card">
-            <h2>Active Examinations</h2>
-            <div id="exam-list"></div>
-        </div>
+  <div class="card">
+    <h3>Analytics Dashboard</h3>
+    <div id="analytics"></div>
+  </div>
 
-        <div class="card">
-            <div class="flex-between" style="margin-bottom: 20px;">
-                <h2>Diagnostic Overview</h2>
-                <button class="btn-sm btn-outline" onclick="exportResults()">Download CSV Report</button>
-            </div>
-            
-            <div class="grid" style="margin-bottom: 20px;">
-                <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div style="color:var(--text-muted); font-size:13px">Total Submissions</div></div>
-                <div class="stat-box"><div class="stat-num" id="stat-avg">0%</div><div style="color:var(--text-muted); font-size:13px">Average Global Score</div></div>
-            </div>
+  <div class="card">
+    <h3>Live Monitoring</h3>
+    <div id="liveMonitor"></div>
+  </div>
 
-            <input type="text" id="res-search" placeholder="Search by student name or class..." onkeyup="filterResults()">
-            <div style="overflow-x:auto">
-                <table id="results-table">
-                    <thead>
-                        <tr><th>Candidate Name</th><th>Class</th><th>Score</th><th>Percentage</th><th>Time Used</th><th>Date</th></tr>
-                    </thead>
-                    <tbody id="results-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
-    const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
-    let session = null, questionsPool = [], allResults = [], allExams = [];
 
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.innerText = msg; toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3500);
-    }
+const SUPABASE_URL = "https://pstnsaqjshmtintjrnas.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function toggleAuth(isSignup) {
-        document.getElementById('auth-title').innerText = isSignup ? "Create Tutor Account" : "Tutor Authentication";
-        document.getElementById('login-flow').classList.toggle('hidden', isSignup);
-        document.getElementById('signup-flow').classList.toggle('hidden', !isSignup);
-    }
+let currentUser = null;
 
-    async function sbFetch(path, method = 'GET', body = null) {
-        const token = session ? session.access_token : SB_KEY;
-        const res = await fetch(`${SB_URL}${path}`, {
-            method,
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: body ? JSON.stringify(body) : null
-        });
-        if (!res.ok) throw new Error((await res.json().catch(()=>({}))).message || "Database action failed");
-        const text = await res.text();
-        return text ? JSON.parse(text) : {};
-    }
+/* =========================
+   LOGIN
+========================= */
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    async function handleAuth(type) {
-        const email = document.getElementById('email').value, password = document.getElementById('pass').value;
-        try {
-            if(type === 'signup') {
-                await sbFetch('/auth/v1/signup', 'POST', { email, password });
-                showToast("Account created successfully. You can now login.");
-                toggleAuth(false);
-            } else {
-                session = await sbFetch('/auth/v1/token?grant_type=password', 'POST', { email, password });
-                document.getElementById('auth-box').classList.add('hidden');
-                document.getElementById('main-dash').classList.remove('hidden');
-                showToast("Welcome back!");
-                loadExams(); loadResults();
-            }
-        } catch (e) { showToast("Error: " + e.message); }
-    }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email, password
+  });
 
-    document.getElementById('csv-file').addEventListener('change', function(e) {
-        const reader = new FileReader();
-        reader.onload = function() {
-            const lines = reader.result.split(/\r?\n/).filter(l => l.trim());
-            questionsPool = lines.slice(1).map(line => {
-                const p = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                // FIXED: Array mapped correctly starting from index 0
-                return { 
-                    q: p[0]?.replace(/^"|"$/g, ''), 
-                    a: p[1], 
-                    b: p[2], 
-                    c: p[3], 
-                    d: p[4], 
-                    ans: p[5]?.trim().toUpperCase(), 
-                    exp: p[6]?.replace(/^"|"$/g, '') 
-                };
-            });
-            showToast(`Successfully parsed ${questionsPool.length} questions.`);
-        };
-        reader.readAsText(e.target.files[0]);
+  if (error) return alert(error.message);
+
+  currentUser = data.user;
+
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+
+  loadExams();
+  loadAnalytics();
+  startLiveMonitoring();
+}
+
+/* =========================
+   LOAD TEACHER EXAMS
+========================= */
+async function loadExams() {
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", currentUser.id)
+    .single();
+
+  let query = supabase.from("exams").select("*");
+
+  if (profile.role !== "admin") {
+    query = query.eq("created_by", currentUser.id);
+  }
+
+  const { data } = await query;
+
+  const container = document.getElementById("examList");
+  container.innerHTML = "";
+
+  data.forEach(exam => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <b>${exam.title}</b><br>
+      <button onclick="viewResults('${exam.id}')">View Results</button>
+      <button onclick="exportCSV('${exam.id}')">Export CSV</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/* =========================
+   CSV UPLOAD
+========================= */
+async function uploadCSV() {
+  const file = document.getElementById("csvFile").files[0];
+  const title = document.getElementById("examTitle").value;
+
+  if (!file || !title) return alert("Missing data");
+
+  const text = await file.text();
+  const rows = text.split("\n").slice(1);
+
+  const { data: exam } = await supabase
+    .from("exams")
+    .insert([{ title, created_by: currentUser.id }])
+    .select()
+    .single();
+
+  for (let row of rows) {
+    const cols = row.split(",");
+
+    await supabase.from("questions").insert({
+      exam_id: exam.id,
+      question: cols[0],
+      option_a: cols[1],
+      option_b: cols[2],
+      option_c: cols[3],
+      option_d: cols[4],
+      correct_answer: cols[5],
+      topic: cols[6]
+    });
+  }
+
+  alert("Uploaded successfully");
+  loadExams();
+}
+
+/* =========================
+   VIEW RESULTS
+========================= */
+async function viewResults(examId) {
+
+  const { data } = await supabase
+    .from("results")
+    .select("*")
+    .eq("exam_id", examId);
+
+  let html = "<h4>Results</h4>";
+
+  data.forEach(r => {
+    html += `<p>${r.student_name} - Score: ${r.score}</p>`;
+  });
+
+  document.getElementById("analytics").innerHTML = html;
+}
+
+/* =========================
+   EXPORT CSV
+========================= */
+async function exportCSV(examId) {
+
+  const { data } = await supabase
+    .from("results")
+    .select("*")
+    .eq("exam_id", examId);
+
+  let csv = "Name,Score\n";
+
+  data.forEach(r => {
+    csv += `${r.student_name},${r.score}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const link = document.createElement("a");
+
+  link.href = URL.createObjectURL(blob);
+  link.download = "results.csv";
+  link.click();
+}
+
+/* =========================
+   ANALYTICS
+========================= */
+async function loadAnalytics() {
+
+  const { data } = await supabase.from("results").select("*");
+
+  if (!data.length) return;
+
+  let avg = data.reduce((a, b) => a + b.score, 0) / data.length;
+
+  let top = data.sort((a,b)=>b.score-a.score)[0];
+
+  document.getElementById("analytics").innerHTML = `
+    <p>Average Score: ${avg.toFixed(2)}</p>
+    <p>Top Performer: ${top.student_name} (${top.score})</p>
+  `;
+}
+
+/* =========================
+   LIVE MONITORING
+========================= */
+function startLiveMonitoring() {
+  setInterval(async () => {
+
+    const { data } = await supabase
+      .from("attempts")
+      .select("*")
+      .eq("status", "in_progress");
+
+    let html = "";
+
+    data.forEach(a => {
+      html += `<p>${a.student_name} - ${a.exam_id}</p>`;
     });
 
-    async function createExam() {
-        if (!questionsPool.length) return showToast("⚠️ Upload a valid CSV file first.");
-        const payload = {
-            subject: document.getElementById('ex-sub').value, duration: document.getElementById('ex-dur').value,
-            attempt_limit: document.getElementById('ex-limit').value, select_count: document.getElementById('ex-count').value || 0,
-            code: Math.random().toString(36).substring(2, 8).toUpperCase(), csv_data: JSON.stringify(questionsPool),
-            teacher_id: session.user.id
-        };
-        try { await sbFetch('/rest/v1/exams', 'POST', payload); showToast("✅ Examination Published!"); loadExams(); } 
-        catch(e) { showToast(e.message); }
-    }
+    document.getElementById("liveMonitor").innerHTML = html;
 
-    async function loadExams() {
-        allExams = await sbFetch('/rest/v1/exams?select=*&order=created_at.desc');
-        // FIXED: Robust regex URL replace that ignores trailing numbers in file names
-        const baseUrl = window.location.href.replace(/teacher[^/]*\.html/i, 'student.html');
-        document.getElementById('exam-list').innerHTML = allExams.map(e => `
-            <div style="padding:20px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px">
-                <div>
-                    <div style="font-size:18px; font-weight:600; margin-bottom:6px">${e.subject} <span class="status-badge ${e.is_open?'open':'closed'}" style="margin-left:10px">${e.is_open?'Live':'Locked'}</span></div>
-                    <div style="color:var(--text-muted); font-size:13px; font-family:monospace">Share Link: ${baseUrl}?code=${e.code}</div>
-                </div>
-                <div style="display:flex; gap:10px">
-                    <button class="btn-sm btn-preview" onclick="previewExam('${e.id}')">Preview</button>
-                    <button class="btn-sm btn-outline" onclick="toggleStatus('${e.id}', ${e.is_open})">${e.is_open?'Lock Exam':'Open Exam'}</button>
-                    <button class="btn-sm btn-danger" onclick="deleteExam('${e.id}')">Delete</button>
-                </div>
-            </div>
-        `).join('');
-    }
+  }, 5000);
+}
 
-    function previewExam(id) {
-        const exam = allExams.find(e => e.id === id);
-        const qs = JSON.parse(exam.csv_data);
-        document.getElementById('modal-title').innerText = `Preview: ${exam.subject}`;
-        document.getElementById('modal-body').innerHTML = qs.map((q, i) => `
-            <div class="preview-q">
-                <div style="font-weight:600; font-size:16px; margin-bottom:10px">Q${i+1}. ${q.q}</div>
-                <div style="font-size:14px; color:var(--text-muted); margin-bottom:5px">
-                    A) ${q.a} <br> B) ${q.b} <br> C) ${q.c} <br> D) ${q.d}
-                </div>
-                <div style="margin-top:10px; padding:8px; background:rgba(16,185,129,0.1); color:var(--primary); border-radius:6px; font-size:13px; font-weight:600">
-                    Correct Answer: ${q.ans}
-                </div>
-            </div>
-        `).join('');
-        document.getElementById('preview-modal').classList.remove('hidden');
-    }
+/* =========================
+   ANTI-CHEAT LOG VIEW
+========================= */
+async function viewCheatLogs(examId) {
 
-    async function toggleStatus(id, currentStatus) {
-        try { await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'PATCH', { is_open: !currentStatus }); loadExams(); showToast("Status updated."); } 
-        catch (e) { showToast(e.message); }
-    }
+  const { data } = await supabase
+    .from("anti_cheat_logs")
+    .select("*")
+    .eq("exam_id", examId);
 
-    async function deleteExam(id) {
-        if(confirm("DANGER: This permanently deletes the exam and all student results. Proceed?")) {
-            try { await sbFetch(`/rest/v1/exams?id=eq.${id}`, 'DELETE'); loadExams(); loadResults(); showToast("Exam deleted."); } 
-            catch (e) { showToast(e.message); }
-        }
-    }
+  let html = "<h4>Cheating Logs</h4>";
 
-    async function loadResults() {
-        allResults = await sbFetch('/rest/v1/results?select=*,exams(subject)&order=created_at.desc');
-        updateStats(allResults); renderResults(allResults);
-    }
+  data.forEach(log => {
+    html += `<p>${log.student_id} - ${log.event_type} (${log.timestamp})</p>`;
+  });
 
-    function updateStats(data) {
-        document.getElementById('stat-total').innerText = data.length;
-        if(data.length === 0) return document.getElementById('stat-avg').innerText = '0%';
-        let sum = data.reduce((acc, r) => acc + (r.score / r.total), 0);
-        document.getElementById('stat-avg').innerText = Math.round((sum / data.length) * 100) + '%';
-    }
+  document.getElementById("analytics").innerHTML = html;
+}
 
-    function renderResults(data) {
-        document.getElementById('results-body').innerHTML = data.map(r => `
-            <tr>
-                <td style="font-weight:600">${r.student_name} <br><small style="color:var(--text-muted); font-weight:normal">Attempt #${r.attempt_number || 1}</small></td>
-                <td>${r.student_class}</td>
-                <td style="font-weight:700">${r.score}/${r.total}</td>
-                <td style="color:var(--primary); font-weight:700">${Math.round((r.score/r.total)*100)}%</td>
-                <td style="color:var(--text-muted)">${Math.floor((r.time_taken || 0)/60)}m ${(r.time_taken || 0)%60}s</td>
-                <td style="color:var(--text-muted)">${new Date(r.created_at).toLocaleDateString()}</td>
-            </tr>
-        `).join('');
-    }
-
-    function filterResults() {
-        const q = document.getElementById('res-search').value.toLowerCase();
-        renderResults(allResults.filter(r => r.student_name.toLowerCase().includes(q) || r.student_class.toLowerCase().includes(q)));
-    }
-
-    function exportResults() {
-        if(!allResults.length) return showToast("No results to export.");
-        let csv = "Name,Class,Score,Total,Percentage,Time Taken(s),Attempt,Date\n" + 
-            allResults.map(r => `"${r.student_name}","${r.student_class}",${r.score},${r.total},${Math.round((r.score/r.total)*100)}%,${r.time_taken},${r.attempt_number},${r.created_at}`).join("\n");
-        const a = document.createElement('a'); a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'cbt_report.csv'; a.click();
-    }
 </script>
+
 </body>
 </html>
