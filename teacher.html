@@ -47,6 +47,55 @@
         tr:hover td { background: var(--surface-hover); }
         
         .hidden { display: none !important; }
+
+        <!-- ========================= -->
+<!-- CALCULATOR -->
+<!-- ========================= -->
+
+<div id="calc-btn" onclick="toggleCalc()">🧮</div>
+
+<div id="calculator">
+  <input type="text" id="calc-display" readonly>
+
+  <div class="calc-grid">
+    <button class="calc-btn" onclick="calcInput('7')">7</button>
+    <button class="calc-btn" onclick="calcInput('8')">8</button>
+    <button class="calc-btn" onclick="calcInput('9')">9</button>
+    <button class="calc-btn" onclick="calcInput('/')">÷</button>
+    <button class="calc-btn" onclick="calcFunc('sqrt')">√</button>
+
+    <button class="calc-btn" onclick="calcInput('4')">4</button>
+    <button class="calc-btn" onclick="calcInput('5')">5</button>
+    <button class="calc-btn" onclick="calcInput('6')">6</button>
+    <button class="calc-btn" onclick="calcInput('*')">×</button>
+    <button class="calc-btn" onclick="calcFunc('pow')">x²</button>
+
+    <button class="calc-btn" onclick="calcInput('1')">1</button>
+    <button class="calc-btn" onclick="calcInput('2')">2</button>
+    <button class="calc-btn" onclick="calcInput('3')">3</button>
+    <button class="calc-btn" onclick="calcInput('-')">-</button>
+    <button class="calc-btn" onclick="calcFunc('log')">log</button>
+
+    <button class="calc-btn" onclick="calcInput('0')">0</button>
+    <button class="calc-btn" onclick="calcInput('.')">.</button>
+    <button class="calc-btn" onclick="calculate()">=</button>
+    <button class="calc-btn" onclick="calcInput('+')">+</button>
+    <button class="calc-btn" onclick="calcFunc('sin')">sin</button>
+
+    <button class="calc-btn" onclick="clearCalc()">C</button>
+    <button class="calc-btn" onclick="calcFunc('cos')">cos</button>
+    <button class="calc-btn" onclick="calcFunc('tan')">tan</button>
+    <button class="calc-btn" onclick="calcInput('(')">(</button>
+    <button class="calc-btn" onclick="calcInput(')')">)</button>
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- YOUR ORIGINAL CBT UI -->
+<!-- ========================= -->
+        
+
+        
         
         /* Stats Dashboard */
         .stat-box { background: var(--bg); border: 1px solid var(--border); padding: 20px; border-radius: 12px; text-align: center; }
@@ -153,6 +202,64 @@
 <script>
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+    
+    /* ========================= */
+/* CALCULATOR LOGIC */
+/* ========================= */
+
+function toggleCalc(){
+  const c = document.getElementById('calculator');
+  c.style.display = c.style.display === 'block' ? 'none' : 'block';
+}
+
+function calcInput(val){
+  document.getElementById('calc-display').value += val;
+}
+
+function clearCalc(){
+  document.getElementById('calc-display').value = '';
+}
+
+function calcFunc(type){
+  let val = parseFloat(document.getElementById('calc-display').value);
+
+  switch(type){
+    case 'sqrt':
+      val = Math.sqrt(val);
+      break;
+    case 'pow':
+      val = Math.pow(val,2);
+      break;
+    case 'sin':
+      val = Math.sin(val * Math.PI/180);
+      break;
+    case 'cos':
+      val = Math.cos(val * Math.PI/180);
+      break;
+    case 'tan':
+      val = Math.tan(val * Math.PI/180);
+      break;
+    case 'log':
+      val = Math.log10(val);
+      break;
+  }
+
+  document.getElementById('calc-display').value = val;
+}
+
+function calculate(){
+  try{
+    let exp = document.getElementById('calc-display').value;
+    let result = Function('return ' + exp)();
+    document.getElementById('calc-display').value = result;
+  }catch{
+    alert('Invalid Expression');
+  }
+}
+
+
+    
+    
     let session = null, questionsPool = [], allResults = [], allExams = [];
 
     function showToast(msg) {
@@ -315,6 +422,62 @@
             allResults.map(r => `"${r.student_name}","${r.student_class}",${r.score},${r.total},${Math.round((r.score/r.total)*100)}%,${r.time_taken},${r.attempt_number},${r.created_at}`).join("\n");
         const a = document.createElement('a'); a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'cbt_report.csv'; a.click();
     }
+
+let exam, questions=[], current=0, answers={}, timeLeft=0;
+
+async function init(){
+  const code = new URLSearchParams(window.location.search).get('code');
+
+  const res = await fetch(`${SB_URL}/rest/v1/exams?code=eq.${code}&select=*`,{
+    headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}
+  });
+
+  const data = await res.json();
+  exam = data[0];
+  questions = JSON.parse(exam.csv_data);
+
+}
+
+function validateAttempt(){
+  startExam();
+}
+
+function startExam(){
+  document.getElementById('entry-card').classList.add('hidden');
+  document.getElementById('exam-card').classList.remove('hidden');
+
+  document.getElementById('exam-subject').innerText = exam.subject;
+
+  timeLeft = exam.duration * 60;
+
+  setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer').innerText = timeLeft;
+  },1000);
+
+  showQ();
+}
+
+function showQ(){
+  let q = questions[current];
+  document.getElementById('q-text').innerText = q.q;
+
+  let box='';
+  ['A','B','C','D'].forEach(l=>{
+    box+=`<div onclick="answers[${current}]='${l}';showQ()">${l}. ${q[l.toLowerCase()]}</div>`;
+  });
+
+  document.getElementById('options-box').innerHTML = box;
+}
+
+function next(){
+  current++;
+  if(current>=questions.length) alert('Done');
+  else showQ();
+}
+
+init();
+    
 </script>
 </body>
 </html>
