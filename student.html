@@ -6,137 +6,6 @@
   <title>Student Portal</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    #calculator-toggle {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #2563eb;
-  color: white;
-  font-size: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-#calculator-box {
-  position: fixed;
-  bottom: 90px;
-  right: 20px;
-  width: 300px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  padding: 15px;
-  z-index: 9999;
-}
-
-#calculator-box.hidden {
-  display: none;
-}
-
-.calc-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  font-weight: bold;
-}
-
-.calc-header button {
-  border: none;
-  background: red;
-  color: white;
-  border-radius: 4px;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-#calc-display {
-  width: 100%;
-  height: 50px;
-  font-size: 20px;
-  margin-bottom: 10px;
-  text-align: right;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-sizing: border-box;
-}
-
-.calc-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.calc-buttons button {
-  padding: 14px;
-  font-size: 18px;
-  border: none;
-  border-radius: 8px;
-  background: #f1f5f9;
-  cursor: pointer;
-}
-
-.calc-buttons button:hover {
-  background: #dbeafe;
-}
-
-.question-nav {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-  gap: 8px;
-  margin: 20px 0;
-}
-
-.question-nav button {
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  background: #e5e7eb;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.question-nav button.active {
-  background: #2563eb;
-  color: white;
-}
-
-.question-nav button.answered {
-  background: #16a34a;
-  color: white;
-}
-
-.review-card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
-}
-
-.review-card.correct {
-  border-left: 6px solid green;
-}
-
-.review-card.wrong {
-  border-left: 6px solid red;
-}
-
-@media (max-width: 600px) {
-  #calculator-box {
-    width: 90%;
-    right: 5%;
-    bottom: 80px;
-  }
-}
     :root {
       --bg: #09090b;
       --surface: #18181b;
@@ -370,31 +239,6 @@
   <div class="exam-layout">
     <div class="question-panel">
       <h3>Questions</h3>
-      <div id="question-nav" class="question-nav"></div>
-      function renderQuestionNav() {
-  const nav = document.getElementById('question-nav');
-  nav.innerHTML = '';
-
-  exam.questions.forEach((q, index) => {
-    const btn = document.createElement('button');
-    btn.innerText = index + 1;
-
-    if(index === currentQuestion) {
-      btn.classList.add('active');
-    }
-
-    if(answers[index] !== undefined) {
-      btn.classList.add('answered');
-    }
-
-    btn.onclick = () => {
-      currentQuestion = index;
-      renderQuestion();
-    };
-
-    nav.appendChild(btn);
-  });
-}
       <p>Click any number to jump directly to that question.</p>
       <div class="question-grid" id="question-grid"></div>
     </div>
@@ -424,7 +268,7 @@
 
 <script>
 const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
+const SB_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 let exam = null;
 let questions = [];
@@ -688,26 +532,7 @@ async function submitExam() {
 
     reviewBox.appendChild(review);
   });
-let reviewHTML = `<h2>Exam Review</h2>`;
 
-exam.questions.forEach((q, index) => {
-  const studentAnswer = answers[index];
-  const correctAnswer = q.correct_answer;
-  const isCorrect = studentAnswer === correctAnswer;
-
-  reviewHTML += `
-    <div class="review-card ${isCorrect ? 'correct' : 'wrong'}">
-      <h3>Question ${index + 1}</h3>
-      <p><strong>Question:</strong> ${q.question}</p>
-      <p><strong>Your Answer:</strong> ${studentAnswer || 'No Answer'}</p>
-      <p><strong>Correct Answer:</strong> ${correctAnswer}</p>
-      <p><strong>Status:</strong> ${isCorrect ? 'Correct' : 'Wrong'}</p>
-      ${q.explanation ? `<p><strong>Explanation:</strong> ${q.explanation}</p>` : ''}
-    </div>
-  `;
-});
-
-document.getElementById('exam-container').innerHTML = reviewHTML;
   try {
     await fetch(`${SB_URL}/rest/v1/results`, {
       method: 'POST',
@@ -733,69 +558,7 @@ document.getElementById('exam-container').innerHTML = reviewHTML;
 }
 
 init();
-function toggleCalculator() {
-  document.getElementById('calculator-box').classList.toggle('hidden');
-}
-
-function pressCalc(value) {
-  document.getElementById('calc-display').value += value;
-}
-
-function clearCalc() {
-  document.getElementById('calc-display').value = '';
-}
-
-function deleteCalc() {
-  const display = document.getElementById('calc-display');
-  display.value = display.value.slice(0, -1);
-}
-
-function calculateResult() {
-  const display = document.getElementById('calc-display');
-
-  try {
-    display.value = eval(display.value);
-  } catch {
-    display.value = 'Error';
-  }
-}
 </script>
-<div id="calculator-toggle" onclick="toggleCalculator()">🧮</div>
 
-<div id="calculator-box" class="hidden">
-  <div class="calc-header">
-    <span>Calculator</span>
-    <button onclick="toggleCalculator()">✕</button>
-  </div>
-
-  <input type="text" id="calc-display" readonly>
-
-  <div class="calc-buttons">
-    <button onclick="pressCalc('7')">7</button>
-    <button onclick="pressCalc('8')">8</button>
-    <button onclick="pressCalc('9')">9</button>
-    <button onclick="pressCalc('/')">÷</button>
-
-    <button onclick="pressCalc('4')">4</button>
-    <button onclick="pressCalc('5')">5</button>
-    <button onclick="pressCalc('6')">6</button>
-    <button onclick="pressCalc('*')">×</button>
-
-    <button onclick="pressCalc('1')">1</button>
-    <button onclick="pressCalc('2')">2</button>
-    <button onclick="pressCalc('3')">3</button>
-    <button onclick="pressCalc('-')">−</button>
-
-    <button onclick="pressCalc('0')">0</button>
-    <button onclick="pressCalc('.')">.</button>
-    <button onclick="calculateResult()">=</button>
-    <button onclick="pressCalc('+')">+</button>
-
-    <button onclick="pressCalc('(')">(</button>
-    <button onclick="pressCalc(')')">)</button>
-    <button onclick="clearCalc()">C</button>
-    <button onclick="deleteCalc()">⌫</button>
-  </div>
-</div>
 </body>
-</html>
+<
