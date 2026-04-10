@@ -154,19 +154,6 @@
     const SB_URL = 'https://pstnsaqjshmtintjrnas.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdG5zYXFqc2htdGludGpybmFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDEzODUsImV4cCI6MjA5MTI3NzM4NX0.KNVgpVN0xp1njin1HL3udntc7psfzjnz7mqzpEN_Z6w';
     let session = null, questionsPool = [], allResults = [], allExams = [];
-    /* =========================
-       ===== ADDED START =====
-    ========================== */
-
-    // GLOBAL ERROR VISIBILITY
-    window.onerror = function(msg) {
-        alert("System Error: " + msg);
-    };
-
-    // LOADING STATE
-    function setLoading(state){
-        document.querySelectorAll("button").forEach(b => b.disabled = state);
-    }
 
     function showToast(msg) {
         const toast = document.getElementById('toast');
@@ -194,17 +181,9 @@
 
     async function handleAuth(type) {
         const email = document.getElementById('email').value, password = document.getElementById('pass').value;
-        setLoading(true);
         try {
             if(type === 'signup') {
-               const res = await sbFetch('/auth/v1/signup', 'POST', { email, password });
-                if(res.user){
-                    await sbFetch('/rest/v1/profiles','POST',{
-                        id:res.user.id,
-                        email:res.user.email,
-                        role: 'teacher'
-                    });
-                    
+                await sbFetch('/auth/v1/signup', 'POST', { email, password });
                 showToast("Account created successfully. You can now login.");
                 toggleAuth(false);
             } else {
@@ -213,29 +192,9 @@
                 document.getElementById('main-dash').classList.remove('hidden');
                 showToast("Welcome back!");
                 loadExams(); loadResults();
-                startLiveMonitoring()
             }
         } catch (e) { showToast("Error: " + e.message); }
     }
-    
-
-    // SESSION RESTORE
-    async function restoreSession(){
-        try{
-            const res = await fetch(`${SB_URL}/auth/v1/user`, {
-                headers: { apikey: SB_KEY }
-            });
-            if(res.ok){
-                document.getElementById('auth-box').classList.add('hidden');
-                document.getElementById('main-dash').classList.remove('hidden');
-                loadExams(); 
-                loadResults();
-                startLiveMonitoring();
-            }
-        }catch{}
-    }
-    restoreSession();
-
 
     document.getElementById('csv-file').addEventListener('change', function(e) {
         const reader = new FileReader();
@@ -273,10 +232,6 @@
 
     async function loadExams() {
         allExams = await sbFetch('/rest/v1/exams?select=*&order=created_at.desc');
-               /* ===== ADDED: TEACHER FILTER (NON-DESTRUCTIVE) ===== */
-        if(session?.user?.id){
-            allExams = allExams.filter(e => e.teacher_id === session.user.id);
-        }
         // FIXED: Robust regex URL replace that ignores trailing numbers in file names
         const baseUrl = window.location.href.replace(/teacher[^/]*\.html/i, 'student.html');
         document.getElementById('exam-list').innerHTML = allExams.map(e => `
@@ -292,27 +247,6 @@
                 </div>
             </div>
         `).join('');
-    }
-
-    
-    // LIVE MONITORING
-    function startLiveMonitoring(){
-        setInterval(async ()=>{
-            try{
-                const data = await sbFetch('/rest/v1/attempts?status=eq.in_progress');
-                console.log("Active Students:", data.length);
-            }catch{}
-        },5000);
-    }
-
-    // CHEAT LOGS
-    async function viewCheatLogs(examId){
-        try{
-            const logs = await sbFetch(`/rest/v1/anti_cheat_logs?exam_id=eq.${examId}`);
-            alert("Cheat Logs Found: " + logs.length);
-        }catch(e){
-            showToast(e.message);
-        }
     }
 
     function previewExam(id) {
