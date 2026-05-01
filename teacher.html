@@ -1264,8 +1264,9 @@ function timeAgo(iso){
   return new Date(iso).toLocaleDateString('en-GB');
 }
 
-async function sbFetch(path,method='GET',body=null){
-  if(!session&&['POST','PATCH','DELETE'].includes(method)){
+async function sbFetch(path, method='GET', body=null){
+  const isAuthEndpoint = path.startsWith('/auth/v1/');
+  if(!session && !isAuthEndpoint && ['POST','PATCH','DELETE'].includes(method)){
     throw new Error('Session expired. Please log out and log in again.');
   }
   const token=session?session.access_token:SB_KEY;
