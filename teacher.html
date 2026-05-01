@@ -946,10 +946,17 @@ ALTER TABLE results ENABLE ROW LEVEL SECURITY;</div>
         <div class="settings-block" style="border-color:rgba(16,185,129,0.3);">
           <div class="settings-block-title" style="color:var(--primary);">🔒 Step 2 — Exams: Teachers Only See &amp; Edit Their Own</div>
           <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Each teacher is completely isolated. They can only read, create, update, and delete their own exams.</p>
-          <div class="sql-block" id="sql2">-- Teachers can only SELECT their own exams
+          <div class="sql-block" id="sql2">-- Teachers can only SELECT their own exams (authenticated)
 CREATE POLICY "Teachers select own exams"
 ON exams FOR SELECT
+TO authenticated
 USING (auth.uid() = teacher_id);
+
+-- Students (anonymous) can read any exam to load it by code
+CREATE POLICY "Students can read exams by code"
+ON exams FOR SELECT
+TO anon
+USING (true);
 
 -- Teachers can only INSERT exams they own
 CREATE POLICY "Teachers insert own exams"
